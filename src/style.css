@@ -1141,3 +1141,31 @@ code, kbd, pre, .mono {
   border-color: #ef4444;
 }
 
+/* Fullscreen Auth Container (Only screen visible prior to authentication) */
+.auth-fullscreen-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 25%, #1e1b4b 0%, #030712 80%);
+  padding: 24px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* User Selection Prevention on Critical Administrative UI */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+input, textarea, code, pre {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+

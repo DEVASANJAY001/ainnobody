@@ -80,11 +80,19 @@ export function subscribeToState(fn) {
 }
 
 function notifySingleListener(fn) {
-    // Isolate users: Admin A only sees Admin A's users!
-    let scopedUsers = [];
-    if (currentAdmin && currentAdmin.adminId) {
-        scopedUsers = usersCache.filter(u => u.adminId === currentAdmin.adminId || (!u.adminId && currentAdmin.adminId === "admin"));
+    // If not authenticated as an admin, NEVER expose student data or config!
+    if (!currentAdmin || !currentAdmin.adminId) {
+        fn({
+            admin: null,
+            users: [],
+            config: { globalGeminiApiKey: "" },
+            connection: { ...connectionStatus }
+        });
+        return;
     }
+
+    // Isolate users: Admin only sees their own students!
+    const scopedUsers = usersCache.filter(u => u.adminId === currentAdmin.adminId || (!u.adminId && currentAdmin.adminId === "admin"));
 
     const scopedConfig = {
         globalGeminiApiKey: (currentAdmin && currentAdmin.geminiApiKey) 
@@ -93,7 +101,7 @@ function notifySingleListener(fn) {
     };
 
     fn({
-        admin: currentAdmin ? { ...currentAdmin } : null,
+        admin: { ...currentAdmin },
         users: [...scopedUsers],
         config: scopedConfig,
         connection: { ...connectionStatus }
@@ -118,6 +126,8 @@ export function setCurrentAdmin(admin) {
 
 export function logoutAdmin() {
     currentAdmin = null;
+    usersCache = [];
+    stopRealtimeSync();
     notifyState();
 }
 
@@ -228,7 +238,7 @@ export async function loginAdmin(adminId, password) {
 
 // Save Admin's Dedicated Gemini API Key
 export async function saveAdminGeminiKey(apiKey) {
-    if (!currentAdmin) throw new Error("No active admin session.");
+    if (!currentAdmin || !currentAdmin.adminId) throw new Error("Unauthorized: Sign in required.");
     const cleanKey = apiKey ? apiKey.trim() : "";
 
     currentAdmin.geminiApiKey = cleanKey;
@@ -261,10 +271,9 @@ export async function saveAdminGeminiKey(apiKey) {
 
 // Save Global or Admin Gemini Key
 export async function saveGlobalConfig(config) {
+    if (!currentAdmin || !currentAdmin.adminId) throw new Error("Unauthorized: Sign in required.");
     const key = (typeof config === 'string' ? config : (config?.globalGeminiApiKey || "")).trim();
-    if (currentAdmin) {
-        await saveAdminGeminiKey(key);
-    }
+    await saveAdminGeminiKey(key);
     globalConfigCache.globalGeminiApiKey = key;
     try {
         await setDoc(doc(db, "system_settings", "config"), { globalGeminiApiKey: key }, { merge: true });
@@ -327,13 +336,36 @@ export async function testCloudConnection() {
     }
 }
 
-// ── INITIALIZE REALTIME SYNC ──
+// ── INITIALIZE REALTIME SYNC (STRICTLY GATED TO AUTHENTICATED ADMIN) ──
+let usersUnsubscribe = null;
+let configUnsubscribe = null;
+
+export function stopRealtimeSync() {
+    if (usersUnsubscribe) {
+        try { usersUnsubscribe(); } catch(e){}
+        usersUnsubscribe = null;
+    }
+    if (configUnsubscribe) {
+        try { configUnsubscribe(); } catch(e){}
+        configUnsubscribe = null;
+    }
+    usersCache = [];
+    notifyState();
+}
+
 export function initRealtimeSync() {
+    // SECURITY GATE: Never sync student records unless admin is authenticated!
+    if (!currentAdmin || !currentAdmin.adminId) {
+        usersCache = [];
+        notifyState();
+        return;
+    }
+
     testCloudConnection().then(() => {
         try {
-            // Subscribe to users collection
+            if (usersUnsubscribe) usersUnsubscribe();
             const usersCol = collection(db, "users");
-            onSnapshot(usersCol, (snapshot) => {
+            usersUnsubscribe = onSnapshot(usersCol, (snapshot) => {
                 const list = [];
                 snapshot.forEach(docSnap => {
                     list.push({ id: docSnap.id, ...docSnap.data() });
@@ -353,9 +385,9 @@ export function initRealtimeSync() {
                 }
             });
 
-            // Subscribe to system settings
+            if (configUnsubscribe) configUnsubscribe();
             const configDoc = doc(db, "system_settings", "config");
-            onSnapshot(configDoc, (snap) => {
+            configUnsubscribe = onSnapshot(configDoc, (snap) => {
                 if (snap.exists()) {
                     globalConfigCache = snap.data();
                     notifyState();
@@ -367,13 +399,16 @@ export function initRealtimeSync() {
     });
 }
 
-// ── STUDENT USER CRUD (SCOPED TO CURRENT ADMIN) ──
+// ── STUDENT USER CRUD (STRICTLY GATED TO CURRENT ADMIN) ──
 
 export async function saveUser(userData) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required before creating or modifying student licenses.");
+    }
     const username = userData.username.trim().toLowerCase();
     if (!username) throw new Error("User ID is required.");
 
-    const adminId = currentAdmin ? currentAdmin.adminId : (userData.adminId || "admin");
+    const adminId = currentAdmin.adminId;
 
     const payload = {
         username: username,
@@ -423,6 +458,9 @@ export async function saveUser(userData) {
 }
 
 export async function deleteUser(username) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
     const cleanId = username.trim().toLowerCase();
     try {
         await deleteDoc(doc(db, "users", cleanId));
@@ -440,6 +478,9 @@ export async function deleteUser(username) {
 }
 
 export async function unbindUserDevice(username) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
     const cleanId = username.trim().toLowerCase();
     const patch = {
         boundDeviceId: null,
@@ -469,6 +510,9 @@ export async function unbindUserDevice(username) {
 }
 
 export async function extendUserExpiry(username, additionalDays) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
     const cleanId = username.trim().toLowerCase();
     const user = usersCache.find(u => u.username === cleanId || u.id === cleanId);
     
@@ -508,6 +552,9 @@ export async function extendUserExpiry(username, additionalDays) {
 }
 
 export async function toggleUserStatus(username, makeActive) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
     const cleanId = username.trim().toLowerCase();
     const patch = { isActive: !!makeActive };
 

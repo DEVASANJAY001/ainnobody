@@ -104,8 +104,9 @@ const recheckCloudBtn = document.getElementById('recheckCloudBtn');
 const copySnippetBtns = document.querySelectorAll('.copy-snippet-btn');
 const toastContainer = document.getElementById('toastContainer');
 
-// Admin Auth & Profile Elements
-const adminAuthOverlay = document.getElementById('adminAuthOverlay');
+// Admin Auth & Dashboard Container Elements
+const authSection = document.getElementById('authSection');
+const dashboardContainer = document.getElementById('dashboardContainer');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const loginAdminId = document.getElementById('loginAdminId');
 const loginAdminPassword = document.getElementById('loginAdminPassword');
@@ -923,12 +924,21 @@ async function loadActivityLogs() {
 
 // ── MULTI-TENANT ADMIN AUTHENTICATION & DASHBOARD SWITCHING ──
 function syncAdminAuthUI(admin) {
-    if (!admin) {
-        if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
+    if (!admin || !admin.adminId) {
+        if (authSection) authSection.style.display = 'flex';
+        if (dashboardContainer) {
+            dashboardContainer.style.display = 'none';
+            dashboardContainer.setAttribute('hidden', 'true');
+        }
         if (adminProfilePill) adminProfilePill.style.display = 'none';
+        if (usersTableBody) usersTableBody.innerHTML = '';
         if (settingsAdminHandle) settingsAdminHandle.innerText = '@login-required';
     } else {
-        if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+        if (authSection) authSection.style.display = 'none';
+        if (dashboardContainer) {
+            dashboardContainer.style.display = 'block';
+            dashboardContainer.removeAttribute('hidden');
+        }
         if (adminProfilePill) adminProfilePill.style.display = 'flex';
         if (navAdminName) navAdminName.innerText = admin.displayName || admin.adminId;
         if (navAdminId) navAdminId.innerText = `@${admin.adminId}`;
@@ -1002,5 +1012,21 @@ subscribeToState((state) => {
 // Initial check for active session
 syncAdminAuthUI(getCurrentAdmin());
 
-// Start Realtime Synchronization with Firebase
+// Security Observer: Prevents DevTools DOM tampering from displaying dashboard without authentication
+const securityGuard = new MutationObserver(() => {
+    const current = getCurrentAdmin();
+    if (!current || !current.adminId) {
+        if (dashboardContainer && (!dashboardContainer.hasAttribute('hidden') || dashboardContainer.style.display !== 'none')) {
+            dashboardContainer.style.display = 'none';
+            dashboardContainer.setAttribute('hidden', 'true');
+            if (usersTableBody) usersTableBody.innerHTML = '';
+        }
+        if (authSection && authSection.style.display !== 'flex') {
+            authSection.style.display = 'flex';
+        }
+    }
+});
+securityGuard.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'hidden', 'class'] });
+
+// Start Realtime Synchronization with Firebase (will only connect if admin is signed in)
 initRealtimeSync();

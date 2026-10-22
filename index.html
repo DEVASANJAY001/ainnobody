@@ -6,10 +6,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LMS Java Helper - Admin Control Portal</title>
     <meta name="description" content="Centralized administration portal for LMS Java Coding Helper Chrome Extension. Manage user authorization, single-device lock, and Gemini API keys." />
+
+    <!-- ── Anti-Inspect & DevTools Lock Shield ── -->
+    <script>
+      (function() {
+        // 1. Disable Right-Click Context Menu
+        document.addEventListener('contextmenu', function(e) {
+          e.preventDefault();
+          return false;
+        }, { capture: true });
+
+        // 2. Disable DevTools & View Source Keyboard Shortcuts
+        window.addEventListener('keydown', function(e) {
+          // F12
+          if (e.keyCode === 123 || e.key === 'F12') {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+          // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Element), Ctrl+Shift+K (Devtools)
+          if (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c', 'K', 'k'].includes(e.key)) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+          // Ctrl+U (View Source), Ctrl+S (Save Page)
+          if (e.ctrlKey && ['U', 'u', 'S', 's'].includes(e.key)) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+        }, { capture: true });
+
+        // 3. Clear console continuously if inspect opened
+        setInterval(function() {
+          if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
+            console.clear();
+          }
+        }, 500);
+      })();
+    </script>
   </head>
   <body>
     <div id="app" class="app-layout">
-      <!-- Navbar -->
+      <!-- ── 1. AUTHENTICATION SCREEN (DEFAULT & ONLY VIEW UNTIL LOGGED IN) ── -->
+      <section id="authSection" class="auth-fullscreen-container">
+        <div class="admin-auth-card">
+          <div class="auth-brand-header">
+            <div class="auth-logo">☕</div>
+            <h2>LMS Java Helper</h2>
+            <p class="auth-subtitle">Admin Portal Access</p>
+          </div>
+
+          <!-- Form: Admin Sign In -->
+          <form id="adminLoginForm" class="auth-form-view">
+            <div class="form-group">
+              <label class="form-label" for="loginAdminId">Admin User ID</label>
+              <input type="text" id="loginAdminId" class="form-input" placeholder="Enter admin user ID" required autocomplete="username" autofocus>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="loginAdminPassword">Admin Password</label>
+              <input type="password" id="loginAdminPassword" class="form-input" placeholder="Enter password" required autocomplete="current-password">
+            </div>
+
+            <div id="loginAuthError" class="auth-error-banner" style="display: none;"></div>
+
+            <button type="submit" id="submitAdminLoginBtn" class="btn btn-primary btn-block" style="margin-top: 18px; padding: 12px; font-size: 14px; width: 100%;">
+              🚀 Sign In to Dashboard
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ── 2. DASHBOARD CONTAINER (STRICTLY HIDDEN UNTIL AUTHENTICATED) ── -->
+      <div id="dashboardContainer" class="dashboard-container" style="display: none;" hidden>
+        <!-- Navbar -->
       <header class="navbar">
         <div class="nav-container">
           <div class="brand-section">
@@ -477,39 +549,10 @@ service cloud.firestore {
           </div>
         </div>
       </div>
+    </div> <!-- /#dashboardContainer -->
 
-      <!-- ── ADMIN AUTHENTICATION SCREEN (Sign In Only) ── -->
-      <div id="adminAuthOverlay" class="admin-auth-overlay" style="display: none;">
-        <div class="admin-auth-card">
-          <div class="auth-brand-header">
-            <div class="auth-logo">☕</div>
-            <h2>LMS Java Helper</h2>
-            <p class="auth-subtitle">Admin Portal Access</p>
-          </div>
-
-          <!-- Form: Admin Sign In -->
-          <form id="adminLoginForm" class="auth-form-view">
-            <div class="form-group">
-              <label class="form-label" for="loginAdminId">Admin User ID</label>
-              <input type="text" id="loginAdminId" class="form-input" placeholder="Enter admin user ID" required autocomplete="username" autofocus>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="loginAdminPassword">Admin Password</label>
-              <input type="password" id="loginAdminPassword" class="form-input" placeholder="Enter password" required autocomplete="current-password">
-            </div>
-
-            <div id="loginAuthError" class="auth-error-banner" style="display: none;"></div>
-
-            <button type="submit" id="submitAdminLoginBtn" class="btn btn-primary btn-block" style="margin-top: 18px; padding: 12px; font-size: 14px; width: 100%;">
-              🚀 Sign In to Dashboard
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Toast Container -->
-      <div id="toastContainer" class="toast-container"></div>
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
     </div>
 
     <script type="module" src="/src/main.js"></script>
