@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LMS Java Helper - Admin Control Portal</title>
+    <meta name="description" content="Centralized administration portal for LMS Java Coding Helper Chrome Extension. Manage user authorization, single-device lock, and Gemini API keys." />
+  </head>
+  <body>
+    <div id="app" class="app-layout">
+      <!-- Navbar -->
+      <header class="navbar">
+        <div class="nav-container">
+          <div class="brand-section">
+            <div class="brand-logo">☕</div>
+            <div>
+              <div class="brand-title">
+                LMS Java Helper <span class="brand-badge">ADMIN PORTAL</span>
+              </div>
+            </div>
+          </div>
+
+          <nav class="nav-center">
+            <button id="tabUsersBtn" class="nav-tab-btn active" data-tab="users">
+              👥 Users & Licenses
+            </button>
+            <button id="tabSettingsBtn" class="nav-tab-btn" data-tab="settings">
+              🔑 Dedicated Gemini Key
+            </button>
+            <button id="tabFirebaseBtn" class="nav-tab-btn" data-tab="firebase">
+              🔥 Firebase Setup & Rules
+            </button>
+            <button id="tabActivityBtn" class="nav-tab-btn" data-tab="activity">
+              📋 Activity Logs
+            </button>
+          </nav>
+
+          <div class="nav-actions">
+            <div id="cloudStatusBadge" class="cloud-status-pill">
+              <span id="cloudStatusDot" class="status-dot"></span>
+              <span id="cloudStatusText">Checking Cloud...</span>
+            </div>
+
+            <!-- Logged-in Admin Profile Pill -->
+            <div id="adminProfilePill" class="admin-profile-pill" style="display: none;">
+              <span class="admin-avatar">👤</span>
+              <div class="admin-details">
+                <span id="navAdminName" class="admin-name">Admin</span>
+                <span id="navAdminId" class="admin-handle">@admin</span>
+              </div>
+              <button id="adminLogoutBtn" class="btn-logout" title="Sign out of this dashboard">
+                🚪 Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="main-content">
+        <!-- ── TAB 1: USERS & LICENSES ── -->
+        <section id="viewUsers" class="tab-view active">
+          <!-- KPI Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card" style="--stat-accent: #4f46e5; --stat-icon-bg: rgba(79, 70, 229, 0.15);">
+              <div class="stat-content">
+                <span class="stat-label">Total Users</span>
+                <span id="statTotalUsers" class="stat-value">0</span>
+                <span class="stat-subtext">Registered in Firestore</span>
+              </div>
+              <div class="stat-icon">👥</div>
+            </div>
+
+            <div class="stat-card" style="--stat-accent: #10b981; --stat-icon-bg: rgba(16, 185, 129, 0.15);">
+              <div class="stat-content">
+                <span class="stat-label">Active Licenses</span>
+                <span id="statActiveUsers" class="stat-value">0</span>
+                <span class="stat-subtext">Can generate code</span>
+              </div>
+              <div class="stat-icon">🟢</div>
+            </div>
+
+            <div class="stat-card" style="--stat-accent: #ef4444; --stat-icon-bg: rgba(239, 68, 68, 0.15);">
+              <div class="stat-content">
+                <span class="stat-label">Expired Licenses</span>
+                <span id="statExpiredUsers" class="stat-value">0</span>
+                <span class="stat-subtext">Extension locked</span>
+              </div>
+              <div class="stat-icon">🔴</div>
+            </div>
+
+            <div class="stat-card" style="--stat-accent: #06b6d4; --stat-icon-bg: rgba(6, 182, 212, 0.15);">
+              <div class="stat-content">
+                <span class="stat-label">Device Locked</span>
+                <span id="statLockedUsers" class="stat-value">0</span>
+                <span class="stat-subtext">1-device restriction bound</span>
+              </div>
+              <div class="stat-icon">🔒</div>
+            </div>
+          </div>
+
+          <!-- Action & Search Toolbar -->
+          <div class="action-toolbar">
+            <div class="toolbar-left">
+              <div class="search-input-wrap">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by User ID, Notes, or Device ID...">
+              </div>
+
+              <div class="filter-pills">
+                <button class="filter-pill active" data-filter="all">All (<span id="countAll">0</span>)</button>
+                <button class="filter-pill" data-filter="active">🟢 Active (<span id="countActive">0</span>)</button>
+                <button class="filter-pill" data-filter="expired">🔴 Expired (<span id="countExpired">0</span>)</button>
+                <button class="filter-pill" data-filter="suspended">🟡 Suspended (<span id="countSuspended">0</span>)</button>
+                <button class="filter-pill" data-filter="locked">🔒 Device Bound (<span id="countLocked">0</span>)</button>
+                <button class="filter-pill" data-filter="unbound">🔓 Unbound (<span id="countUnbound">0</span>)</button>
+              </div>
+            </div>
+
+            <div class="toolbar-right">
+              <button id="refreshUsersBtn" class="btn btn-secondary">
+                🔄 Sync
+              </button>
+              <button id="openNewUserModalBtn" class="btn btn-primary">
+                ➕ New User License
+              </button>
+            </div>
+          </div>
+
+          <!-- Users Table -->
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width: 20%;">User ID / Student</th>
+                  <th style="width: 14%;">Password</th>
+                  <th style="width: 10%;">Status</th>
+                  <th style="width: 15%;">Expiry Date</th>
+                  <th style="width: 17%;">Single Device Lock</th>
+                  <th style="width: 9%;">Gemini Key</th>
+                  <th style="width: 15%; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+            <div id="usersEmptyState" class="empty-state" style="display: none;">
+              <div class="empty-state-icon">👤</div>
+              <h3>No Users Found</h3>
+              <p>No user accounts match the current filter. Create a new user license to get started!</p>
+              <button id="emptyCreateBtn" class="btn btn-primary">➕ Create First User License</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── TAB 2: ADMIN DEDICATED GEMINI KEY & SYSTEM SETTINGS ── -->
+        <section id="viewSettings" class="tab-view" style="display: none;">
+          <div class="settings-section-card">
+            <div class="section-header">
+              <h2 class="section-title">🔑 Dedicated Gemini AI API Key (<span id="settingsAdminHandle" style="color: #38bdf8;">@admin</span>)</h2>
+              <p class="section-desc">
+                This Gemini API key belongs to your admin account. Every student license created in your dashboard will automatically use this Gemini key, unless you assign an individual override key!
+              </p>
+            </div>
+
+            <div class="form-group" style="max-width: 650px;">
+              <label class="form-label" for="globalApiKeyInput">Admin Gemini API Key (Google AI Studio)</label>
+              <div style="display: flex; gap: 10px;">
+                <input type="password" id="globalApiKeyInput" class="form-input" placeholder="AIzaSy..." autocomplete="off">
+                <button id="toggleGlobalKeyVisibilityBtn" class="btn btn-secondary btn-sm" type="button">👁️ Show</button>
+              </div>
+              <div class="form-hint">
+                Get a free or paid API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #38bdf8;">Google AI Studio</a>.
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+              <button id="saveGlobalConfigBtn" class="btn btn-primary">
+                💾 Save Dedicated API Key
+              </button>
+              <button id="testGlobalApiKeyBtn" class="btn btn-secondary">
+                ⚡ Test API Key Live
+              </button>
+            </div>
+
+            <div id="apiKeyTestResult" style="margin-top: 14px; display: none;"></div>
+          </div>
+
+          <div class="settings-section-card">
+            <div class="section-header">
+              <h2 class="section-title">📦 Extension Distribution & Installation Guide</h2>
+              <p class="section-desc">
+                How to give the authorized extension to your students or users:
+              </p>
+            </div>
+
+            <ol style="padding-left: 20px; font-size: 13px; line-height: 1.8; color: #cbd5e1;">
+              <li>Open Google Chrome and navigate to <code class="mono" style="color: #38bdf8;">chrome://extensions/</code>.</li>
+              <li>Toggle <b>"Developer mode"</b> ON in the top-right corner.</li>
+              <li>Click <b>"Load unpacked"</b> and select the <code class="mono" style="color: #38bdf8;">java_coding</code> folder from this workspace.</li>
+              <li>Pin <b>"LMS Java Coding Helper"</b> to the toolbar.</li>
+              <li>When opening the extension popup, students enter their <b>User ID</b> and <b>Password</b> created in this Admin Portal.</li>
+              <li>The extension binds automatically to their machine on first login and runs until the expiration date!</li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- ── TAB 3: FIREBASE SETUP & RULES GUIDE ── -->
+        <section id="viewFirebase" class="tab-view" style="display: none;">
+          <div class="settings-section-card">
+            <div class="section-header">
+              <h2 class="section-title">🔥 Firebase Project & Security Rules Configuration</h2>
+              <p class="section-desc">
+                Current Connected Project: <b style="color: #38bdf8;">buss-60c92</b>
+              </p>
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-weight: 600; font-size: 14px;">Current Cloud Connection:</div>
+                  <div id="firebaseDiagStatus" style="font-size: 12.5px; color: var(--text-dim); margin-top: 2px;">
+                    Diagnostics running...
+                  </div>
+                </div>
+                <button id="recheckCloudBtn" class="btn btn-secondary btn-sm">
+                  🔍 Test Cloud Read/Write
+                </button>
+              </div>
+            </div>
+
+            <h3 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">
+              1. Cloud Firestore Rules (Recommended)
+            </h3>
+            <p style="font-size: 12.5px; color: var(--text-dim);">
+              Go to <a href="https://console.firebase.google.com/project/buss-60c92/firestore/rules" target="_blank" style="color: #38bdf8;">Firebase Console &gt; Firestore Database &gt; Rules</a> and paste:
+            </p>
+
+            <div class="code-snippet-box">
+              <button class="copy-snippet-btn" data-target="firestoreRulesCode">📋 Copy Rules</button>
+              <pre id="firestoreRulesCode">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Admin accounts and credentials
+    match /admins/{adminId} {
+      allow read, write: if true;
+    }
+    // Student users, passwords, and device locks
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    // Global & system settings
+    match /system_settings/{settingId} {
+      allow read, write: if true;
+    }
+    // Live extension activity & audit logs
+    match /activity_logs/{logId} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+            </div>
+
+            <h3 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-top: 24px; margin-bottom: 6px;">
+              2. Realtime Database Rules (Optional Fallback)
+            </h3>
+            <p style="font-size: 12.5px; color: var(--text-dim);">
+              Go to <a href="https://console.firebase.google.com/project/buss-60c92/database/buss-60c92-default-rtdb/rules" target="_blank" style="color: #38bdf8;">Firebase Console &gt; Realtime Database &gt; Rules</a> and paste:
+            </p>
+
+            <div class="code-snippet-box">
+              <button class="copy-snippet-btn" data-target="rtdbRulesCode">📋 Copy Rules</button>
+              <pre id="rtdbRulesCode">{
+  "rules": {
+    "admins": {
+      ".read": true,
+      ".write": true
+    },
+    "users": {
+      ".read": true,
+      ".write": true
+    },
+    "system_settings": {
+      ".read": true,
+      ".write": true
+    },
+    "activity_logs": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}</pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── TAB 4: ACTIVITY LOGS ── -->
+        <section id="viewActivity" class="tab-view" style="display: none;">
+          <div class="settings-section-card">
+            <div class="section-header">
+              <h2 class="section-title">📋 Live Security & Authorization Audit Trail</h2>
+              <p class="section-desc">
+                Real-time tracking of student logins, device registrations, and unbinds:
+              </p>
+            </div>
+
+            <div class="table-container">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>User ID</th>
+                    <th>Action</th>
+                    <th>Security Details</th>
+                  </tr>
+                </thead>
+                <tbody id="activityTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+              <div id="activityEmptyState" class="empty-state">
+                <div class="empty-state-icon">📜</div>
+                <h3>No Recent Audit Events</h3>
+                <p>Activity logs will automatically appear here as users log in or bind devices.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- ── MODAL: CREATE / EDIT USER ── -->
+      <div id="userModal" class="modal-overlay">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3 id="modalUserTitle" class="modal-title">➕ Create User License</h3>
+            <button id="closeUserModalBtn" class="modal-close-btn">&times;</button>
+          </div>
+          <form id="userForm">
+            <div class="modal-body">
+              <div class="form-group">
+                <label class="form-label" for="inputUserId">
+                  <span>User ID / Username <span style="color: #ef4444;">*</span></span>
+                  <span id="userIdTip" style="font-size: 11px; color: var(--text-dim);">Lowercase ID</span>
+                </label>
+                <input type="text" id="inputUserId" class="form-input" placeholder="e.g. user_101 or student ID" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputDisplayName">Display Name / Student Name</label>
+                <input type="text" id="inputDisplayName" class="form-input" placeholder="e.g. John Doe (Optional)">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputPassword">
+                  <span>Password <span style="color: #ef4444;">*</span></span>
+                  <button type="button" id="genRandomPassBtn" style="background: none; border: none; color: #38bdf8; font-size: 11px; cursor: pointer;">🎲 Generate Password</button>
+                </label>
+                <input type="text" id="inputPassword" class="form-input mono" placeholder="Enter or generate password" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputExpiryDate">
+                  <span>Expiry Date & Time <span style="color: #ef4444;">*</span></span>
+                </label>
+                <input type="datetime-local" id="inputExpiryDate" class="form-input" required>
+                <div class="preset-row">
+                  <span style="font-size: 11px; color: var(--text-dim); align-self: center;">Quick Presets:</span>
+                  <button type="button" class="preset-chip" data-days="1">+1 Day</button>
+                  <button type="button" class="preset-chip" data-days="7">+7 Days</button>
+                  <button type="button" class="preset-chip" data-days="30">+30 Days</button>
+                  <button type="button" class="preset-chip" data-days="90">+90 Days</button>
+                  <button type="button" class="preset-chip" data-days="365">+1 Year</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputApiKey">
+                  <span>Dedicated Gemini API Key</span>
+                  <span style="font-size: 11px; color: #10b981;">(Optional)</span>
+                </label>
+                <input type="text" id="inputApiKey" class="form-input" placeholder="Leave blank to use Global System API Key">
+                <div class="form-hint">If left empty, this user will automatically use the Global Gemini Key.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputNotes">Admin Notes / LMS Batch</label>
+                <input type="text" id="inputNotes" class="form-input" placeholder="e.g. Section A, Exam Batch 2026">
+              </div>
+
+              <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #1e293b; padding: 10px 14px; border-radius: var(--radius-md);">
+                <div>
+                  <div style="font-size: 13px; font-weight: 600;">Account Status</div>
+                  <div style="font-size: 11px; color: var(--text-dim);">Enable or temporarily suspend license</div>
+                </div>
+                <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
+                  <input type="checkbox" id="inputIsActive" checked style="opacity: 0; width: 0; height: 0;">
+                  <span id="toggleTrack" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #10b981; transition: .3s; border-radius: 24px;"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" id="cancelUserModalBtn" class="btn btn-secondary">Cancel</button>
+              <button type="submit" id="saveUserBtn" class="btn btn-primary">💾 Save License</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── MODAL: QUICK EXTEND EXPIRY ── -->
+      <div id="extendModal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 440px;">
+          <div class="modal-header">
+            <h3 class="modal-title">⏳ Extend License Expiry</h3>
+            <button id="closeExtendModalBtn" class="modal-close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size: 13px; margin-bottom: 14px;">
+              Extending license for user: <b id="extendModalUsername" style="color: #38bdf8;">user_101</b>
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <button type="button" class="btn btn-secondary extend-quick-btn" data-days="7">+ 7 Days</button>
+              <button type="button" class="btn btn-secondary extend-quick-btn" data-days="14">+ 14 Days</button>
+              <button type="button" class="btn btn-secondary extend-quick-btn" data-days="30">+ 30 Days</button>
+              <button type="button" class="btn btn-secondary extend-quick-btn" data-days="90">+ 90 Days</button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="cancelExtendModalBtn" class="btn btn-secondary">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MODAL: SHARE ACCESS CREDENTIALS MESSAGE ── -->
+      <div id="shareModal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 540px;">
+          <div class="modal-header">
+            <h3 class="modal-title">📨 Share User Credentials</h3>
+            <button id="closeShareModalBtn" class="modal-close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px;">
+              Copy this formatted message to share directly with the student via WhatsApp, Telegram, or Email:
+            </p>
+
+            <div style="position: relative;">
+              <textarea id="shareMessageTextarea" class="form-input mono" rows="13" readonly style="
+                width: 100%;
+                font-size: 11px;
+                line-height: 1.5;
+                background: #090d16;
+                color: #38bdf8;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                padding: 12px;
+                border-radius: var(--radius-md);
+                resize: none;
+                white-space: pre;
+              "></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 14px;">
+              <button type="button" id="copyShareMessageBtn" class="btn btn-primary" style="flex: 2;">
+                📋 Copy Message to Clipboard
+              </button>
+              <a id="whatsappShareLink" href="#" target="_blank" class="btn btn-secondary" style="flex: 1; text-decoration: none; background: rgba(37, 211, 102, 0.15); border-color: rgba(37, 211, 102, 0.35); color: #86efac; text-align: center;">
+                💬 WhatsApp
+              </a>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="closeShareModalFooterBtn" class="btn btn-secondary">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ADMIN AUTHENTICATION SCREEN (Sign In Only) ── -->
+      <div id="adminAuthOverlay" class="admin-auth-overlay" style="display: none;">
+        <div class="admin-auth-card">
+          <div class="auth-brand-header">
+            <div class="auth-logo">☕</div>
+            <h2>LMS Java Helper</h2>
+            <p class="auth-subtitle">Admin Portal Access</p>
+          </div>
+
+          <!-- Form: Admin Sign In -->
+          <form id="adminLoginForm" class="auth-form-view">
+            <div class="form-group">
+              <label class="form-label" for="loginAdminId">Admin User ID</label>
+              <input type="text" id="loginAdminId" class="form-input" placeholder="Enter admin user ID" required autocomplete="username" autofocus>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="loginAdminPassword">Admin Password</label>
+              <input type="password" id="loginAdminPassword" class="form-input" placeholder="Enter password" required autocomplete="current-password">
+            </div>
+
+            <div id="loginAuthError" class="auth-error-banner" style="display: none;"></div>
+
+            <button type="submit" id="submitAdminLoginBtn" class="btn btn-primary btn-block" style="margin-top: 18px; padding: 12px; font-size: 14px; width: 100%;">
+              🚀 Sign In to Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Toast Container -->
+      <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
