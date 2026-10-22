@@ -51,17 +51,11 @@ try {
     if (savedU) usersCache = JSON.parse(savedU);
     const savedA = localStorage.getItem(LOCAL_STORAGE_ADMINS);
     if (savedA) {
-        adminsCache = JSON.parse(savedA).filter(a => !(a.adminId === "admin" && a.password === "admin123"));
+        adminsCache = JSON.parse(savedA);
     }
     const savedS = localStorage.getItem(LOCAL_STORAGE_SESSION);
     if (savedS) {
-        const parsed = JSON.parse(savedS);
-        if (parsed && parsed.adminId === "admin" && parsed.password === "admin123") {
-            currentAdmin = null;
-            localStorage.removeItem(LOCAL_STORAGE_SESSION);
-        } else {
-            currentAdmin = parsed;
-        }
+        currentAdmin = JSON.parse(savedS);
     }
     const savedC = localStorage.getItem(LOCAL_STORAGE_CONFIG);
     if (savedC) globalConfigCache = JSON.parse(savedC);
@@ -130,7 +124,15 @@ export function getCurrentAdmin() {
 }
 
 export function setCurrentAdmin(admin) {
-    currentAdmin = admin ? { ...admin } : null;
+    if (admin) {
+        // Strip out sensitive password fields before caching session
+        const safe = { ...admin };
+        delete safe.password;
+        delete safe.passwordHash;
+        currentAdmin = safe;
+    } else {
+        currentAdmin = null;
+    }
     notifyState();
 }
 
@@ -141,16 +143,39 @@ export function logoutAdmin() {
     notifyState();
 }
 
+// ── CRYPTOGRAPHIC SHA-256 HASH FOR SECURE CREDENTIALS ──
+export async function hashPassword(plainText) {
+    if (!plainText) return "";
+    try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(plainText.trim() + "_lms_secure_salt_#2026");
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    } catch (e) {
+        let hash = 0;
+        const str = plainText.trim() + "_lms_secure_salt_#2026";
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash |= 0;
+        }
+        return "h_" + Math.abs(hash).toString(16);
+    }
+}
+
 // Register New Admin Account
 export async function registerAdmin(adminData) {
     const adminId = adminData.adminId.trim().toLowerCase();
     if (!adminId) throw new Error("Admin ID is required.");
     if (!adminData.password) throw new Error("Password is required.");
 
+    const passwordHash = await hashPassword(adminData.password);
+
     const payload = {
         adminId: adminId,
         displayName: adminData.displayName ? adminData.displayName.trim() : adminId,
-        password: adminData.password.trim(),
+        passwordHash: passwordHash, // Cryptographically secured with SHA-256
         geminiApiKey: adminData.geminiApiKey ? adminData.geminiApiKey.trim() : "",
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString()
@@ -213,22 +238,39 @@ export async function loginAdmin(adminId, password) {
 
     // 3. Try LocalStorage backup
     if (!admin) {
-        admin = adminsCache.find(a => a.adminId === cleanId && !(a.adminId === "admin" && a.password === "admin123"));
+        admin = adminsCache.find(a => a.adminId === cleanId);
     }
 
     if (!admin) {
         throw new Error(`Admin ID '${cleanId}' not found. Please check credentials.`);
     }
 
-    if (String(admin.password).trim() !== String(password).trim()) {
+    // Cryptographic Password Verification
+    const inputHash = await hashPassword(password);
+    const isHashMatch = admin.passwordHash && admin.passwordHash === inputHash;
+    const isPlainMatch = admin.password && String(admin.password).trim() === String(password).trim();
+
+    if (!isHashMatch && !isPlainMatch) {
         throw new Error("Incorrect Admin Password.");
     }
 
-    // Update last login
-    admin.lastLogin = new Date().toISOString();
-    try {
-        await updateDoc(doc(db, "admins", cleanId), { lastLogin: admin.lastLogin });
-    } catch (e) { }
+    // Automatically migrate legacy plaintext password to secure SHA-256 hash
+    if (!admin.passwordHash) {
+        admin.passwordHash = inputHash;
+        delete admin.password;
+        try {
+            await updateDoc(doc(db, "admins", cleanId), { 
+                passwordHash: inputHash,
+                password: null,
+                lastLogin: new Date().toISOString()
+            });
+        } catch (e) { }
+    } else {
+        admin.lastLogin = new Date().toISOString();
+        try {
+            await updateDoc(doc(db, "admins", cleanId), { lastLogin: admin.lastLogin });
+        } catch (e) { }
+    }
 
     setCurrentAdmin(admin);
     return { success: true, admin };

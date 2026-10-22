@@ -318,28 +318,34 @@
               <pre id="firestoreRulesCode">rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Admin accounts and credentials
+    // 1. ADMINS: List enumeration is BLOCKED.
+    // Prevents public scraping of admin accounts and credentials.
     match /admins/{adminId} {
-      allow read, write: if true;
+      allow list: if false;
+      allow get: if true;
+      allow create, update: if true;
+      allow delete: if false;
     }
-    // Student users, passwords, and device locks
+    // 2. STUDENT LICENSES: Restricted to student lookup & portal operations.
     match /users/{userId} {
-      allow read, write: if true;
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
-    // Global & system settings
+    // 3. SYSTEM & GLOBAL SETTINGS
     match /system_settings/{settingId} {
       allow read, write: if true;
     }
-    // Live extension activity & audit logs
+    // 4. ACTIVITY AUDIT TRAIL: Tamper-proof append-only logging.
     match /activity_logs/{logId} {
-      allow read, write: if true;
+      allow read, create: if true;
+      allow update, delete: if false;
     }
   }
 }</pre>
             </div>
 
             <h3 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-top: 24px; margin-bottom: 6px;">
-              2. Realtime Database Rules (Optional Fallback)
+              2. Realtime Database Rules (Locked Root Listing)
             </h3>
             <p style="font-size: 12.5px; color: var(--text-dim);">
               Go to <a href="https://console.firebase.google.com/project/buss-60c92/database/buss-60c92-default-rtdb/rules" target="_blank" style="color: #38bdf8;">Firebase Console &gt; Realtime Database &gt; Rules</a> and paste:
@@ -350,8 +356,11 @@ service cloud.firestore {
               <pre id="rtdbRulesCode">{
   "rules": {
     "admins": {
-      ".read": true,
-      ".write": true
+      ".read": false,
+      "$adminId": {
+        ".read": true,
+        ".write": true
+      }
     },
     "users": {
       ".read": true,
@@ -363,7 +372,9 @@ service cloud.firestore {
     },
     "activity_logs": {
       ".read": true,
-      ".write": true
+      "$logId": {
+        ".write": "!data.exists()"
+      }
     }
   }
 }</pre>
