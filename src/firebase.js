@@ -50,9 +50,19 @@ try {
     const savedU = localStorage.getItem(LOCAL_STORAGE_USERS);
     if (savedU) usersCache = JSON.parse(savedU);
     const savedA = localStorage.getItem(LOCAL_STORAGE_ADMINS);
-    if (savedA) adminsCache = JSON.parse(savedA);
+    if (savedA) {
+        adminsCache = JSON.parse(savedA).filter(a => !(a.adminId === "admin" && a.password === "admin123"));
+    }
     const savedS = localStorage.getItem(LOCAL_STORAGE_SESSION);
-    if (savedS) currentAdmin = JSON.parse(savedS);
+    if (savedS) {
+        const parsed = JSON.parse(savedS);
+        if (parsed && parsed.adminId === "admin" && parsed.password === "admin123") {
+            currentAdmin = null;
+            localStorage.removeItem(LOCAL_STORAGE_SESSION);
+        } else {
+            currentAdmin = parsed;
+        }
+    }
     const savedC = localStorage.getItem(LOCAL_STORAGE_CONFIG);
     if (savedC) globalConfigCache = JSON.parse(savedC);
 } catch (e) { }
@@ -92,7 +102,7 @@ function notifySingleListener(fn) {
     }
 
     // Isolate users: Admin only sees their own students!
-    const scopedUsers = usersCache.filter(u => u.adminId === currentAdmin.adminId || (!u.adminId && currentAdmin.adminId === "admin"));
+    const scopedUsers = usersCache.filter(u => u.adminId === currentAdmin.adminId);
 
     const scopedConfig = {
         globalGeminiApiKey: (currentAdmin && currentAdmin.geminiApiKey) 
@@ -203,19 +213,7 @@ export async function loginAdmin(adminId, password) {
 
     // 3. Try LocalStorage backup
     if (!admin) {
-        admin = adminsCache.find(a => a.adminId === cleanId);
-    }
-
-    // Default admin fallback for initial setup if no admins exist
-    if (!admin && cleanId === "admin" && password === "admin123") {
-        admin = {
-            adminId: "admin",
-            displayName: "Master Administrator",
-            password: "admin123",
-            geminiApiKey: globalConfigCache.globalGeminiApiKey || "",
-            createdAt: new Date().toISOString()
-        };
-        adminsCache.push(admin);
+        admin = adminsCache.find(a => a.adminId === cleanId && !(a.adminId === "admin" && a.password === "admin123"));
     }
 
     if (!admin) {
