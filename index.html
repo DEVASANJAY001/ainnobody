@@ -2,358 +2,401 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236366f1%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M18 8h1a4 4 0 0 1 0 8h-1%22/><path d=%22M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z%22/><line x1=%226%22 y1=%221%22 x2=%226%22 y2=%224%22/><line x1=%2210%22 y1=%221%22 x2=%2210%22 y2=%224%22/><line x1=%2214%22 y1=%221%22 x2=%2214%22 y2=%224%22/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LMS Java Helper - Admin Control Portal</title>
-    <meta name="description" content="Centralized administration portal for LMS Java Coding Helper Chrome Extension. Manage user authorization, single-device lock, and Gemini API keys." />
-
-    <!-- ── Anti-Inspect & DevTools Lock Shield ── -->
-    <script>
-      (function() {
-        // 1. Disable Right-Click Context Menu
-        document.addEventListener('contextmenu', function(e) {
-          e.preventDefault();
-          return false;
-        }, { capture: true });
-
-        // 2. Disable DevTools & View Source Keyboard Shortcuts
-        window.addEventListener('keydown', function(e) {
-          // F12
-          if (e.keyCode === 123 || e.key === 'F12') {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          }
-          // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Element), Ctrl+Shift+K (Devtools)
-          if (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c', 'K', 'k'].includes(e.key)) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          }
-          // Ctrl+U (View Source), Ctrl+S (Save Page)
-          if (e.ctrlKey && ['U', 'u', 'S', 's'].includes(e.key)) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          }
-        }, { capture: true });
-
-        // 3. Clear console continuously if inspect opened
-        setInterval(function() {
-          if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
-            console.clear();
-          }
-        }, 500);
-      })();
-    </script>
+    <title>LMS Java Helper | Enterprise Admin Portal</title>
+    <meta name="description" content="Centralized multi-tenant authorization console for LMS Java Coding Helper. Realtime single-device lock, licenses, and AI keys." />
   </head>
   <body>
+    <!-- Apple Liquid Glass Ambient Refraction Backdrop -->
+    <div class="apple-glass-backdrop" aria-hidden="true">
+      <div class="glass-orb glass-orb-1"></div>
+      <div class="glass-orb glass-orb-2"></div>
+      <div class="glass-orb glass-orb-3"></div>
+      <div class="glass-orb glass-orb-4"></div>
+      <div class="glass-orb glass-orb-5"></div>
+      <div class="glass-caustic-layer"></div>
+    </div>
+
     <div id="app" class="app-layout">
-      <!-- ── 1. AUTHENTICATION SCREEN (DEFAULT & ONLY VIEW UNTIL LOGGED IN) ── -->
+      <!-- ── 1. AUTHENTICATION SCREEN ── -->
       <section id="authSection" class="auth-fullscreen-container">
         <div class="admin-auth-card">
           <div class="auth-brand-header">
-            <div class="auth-logo">☕</div>
+            <div class="auth-logo">
+              <svg class="svg-icon-lg" viewBox="0 0 24 24">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                <line x1="6" y1="1" x2="6" y2="4"></line>
+                <line x1="10" y1="1" x2="10" y2="4"></line>
+                <line x1="14" y1="1" x2="14" y2="4"></line>
+              </svg>
+            </div>
             <h2>LMS Java Helper</h2>
-            <p class="auth-subtitle">Admin Portal Access</p>
+            <p class="auth-subtitle">Enterprise Admin Portal Console</p>
           </div>
 
           <!-- Form: Admin Sign In -->
           <form id="adminLoginForm" class="auth-form-view">
             <div class="form-group">
-              <label class="form-label" for="loginAdminId">Admin User ID</label>
-              <input type="text" id="loginAdminId" class="form-input" placeholder="Enter admin user ID" required autocomplete="username" autofocus>
+              <label class="form-label" for="loginAdminId">Admin Identifier</label>
+              <input type="text" id="loginAdminId" class="form-input" placeholder="e.g. admin or staff ID" required autocomplete="username" autofocus>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="loginAdminPassword">Admin Password</label>
-              <input type="password" id="loginAdminPassword" class="form-input" placeholder="Enter password" required autocomplete="current-password">
+              <label class="form-label" for="loginAdminPassword">Access Password</label>
+              <input type="password" id="loginAdminPassword" class="form-input" placeholder="Enter secure admin password" required autocomplete="current-password">
             </div>
 
             <div id="loginAuthError" class="auth-error-banner" style="display: none;"></div>
 
-            <button type="submit" id="submitAdminLoginBtn" class="btn btn-primary btn-block" style="margin-top: 18px; padding: 12px; font-size: 14px; width: 100%;">
-              🚀 Sign In to Dashboard
+            <button type="submit" id="submitAdminLoginBtn" class="btn btn-primary btn-block" style="margin-top: 22px;">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+              <span>Authenticate to Dashboard</span>
             </button>
           </form>
         </div>
       </section>
 
-      <!-- ── 2. DASHBOARD CONTAINER (STRICTLY HIDDEN UNTIL AUTHENTICATED) ── -->
+      <!-- ── 2. DASHBOARD CONTAINER ── -->
       <div id="dashboardContainer" class="dashboard-container" style="display: none;" hidden>
         <!-- Navbar -->
-      <header class="navbar">
-        <div class="nav-container">
-          <div class="brand-section">
-            <div class="brand-logo">☕</div>
-            <div>
-              <div class="brand-title">
-                LMS Java Helper <span class="brand-badge">ADMIN PORTAL</span>
-              </div>
-            </div>
-          </div>
-
-          <nav class="nav-center">
-            <button id="tabUsersBtn" class="nav-tab-btn active" data-tab="users">
-              👥 Users & Licenses
-            </button>
-            <button id="tabSettingsBtn" class="nav-tab-btn" data-tab="settings">
-              🔑 Dedicated Gemini Key
-            </button>
-            <button id="tabFirebaseBtn" class="nav-tab-btn" data-tab="firebase">
-              🔥 Firebase Setup & Rules
-            </button>
-            <button id="tabActivityBtn" class="nav-tab-btn" data-tab="activity">
-              📋 Activity Logs
-            </button>
-          </nav>
-
-          <div class="nav-actions">
-            <div id="cloudStatusBadge" class="cloud-status-pill">
-              <span id="cloudStatusDot" class="status-dot"></span>
-              <span id="cloudStatusText">Checking Cloud...</span>
-            </div>
-
-            <!-- Logged-in Admin Profile Pill -->
-            <div id="adminProfilePill" class="admin-profile-pill" style="display: none;">
-              <span class="admin-avatar">👤</span>
-              <div class="admin-details">
-                <span id="navAdminName" class="admin-name">Admin</span>
-                <span id="navAdminId" class="admin-handle">@admin</span>
-              </div>
-              <button id="adminLogoutBtn" class="btn-logout" title="Sign out of this dashboard">
-                🚪 Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <!-- Main Content Container -->
-      <main class="main-content">
-        <!-- ── TAB 1: USERS & LICENSES ── -->
-        <section id="viewUsers" class="tab-view active">
-          <!-- KPI Stats Grid -->
-          <div class="stats-grid">
-            <div class="stat-card" style="--stat-accent: #4f46e5; --stat-icon-bg: rgba(79, 70, 229, 0.15);">
-              <div class="stat-content">
-                <span class="stat-label">Total Users</span>
-                <span id="statTotalUsers" class="stat-value">0</span>
-                <span class="stat-subtext">Registered in Firestore</span>
-              </div>
-              <div class="stat-icon">👥</div>
-            </div>
-
-            <div class="stat-card" style="--stat-accent: #10b981; --stat-icon-bg: rgba(16, 185, 129, 0.15);">
-              <div class="stat-content">
-                <span class="stat-label">Active Licenses</span>
-                <span id="statActiveUsers" class="stat-value">0</span>
-                <span class="stat-subtext">Can generate code</span>
-              </div>
-              <div class="stat-icon">🟢</div>
-            </div>
-
-            <div class="stat-card" style="--stat-accent: #ef4444; --stat-icon-bg: rgba(239, 68, 68, 0.15);">
-              <div class="stat-content">
-                <span class="stat-label">Expired Licenses</span>
-                <span id="statExpiredUsers" class="stat-value">0</span>
-                <span class="stat-subtext">Extension locked</span>
-              </div>
-              <div class="stat-icon">🔴</div>
-            </div>
-
-            <div class="stat-card" style="--stat-accent: #06b6d4; --stat-icon-bg: rgba(6, 182, 212, 0.15);">
-              <div class="stat-content">
-                <span class="stat-label">Device Locked</span>
-                <span id="statLockedUsers" class="stat-value">0</span>
-                <span class="stat-subtext">1-device restriction bound</span>
-              </div>
-              <div class="stat-icon">🔒</div>
-            </div>
-          </div>
-
-          <!-- Action & Search Toolbar -->
-          <div class="action-toolbar">
-            <div class="toolbar-left">
-              <div class="search-input-wrap">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        <header class="navbar">
+          <div class="nav-container">
+            <div class="brand-section">
+              <div class="brand-logo">
+                <svg class="svg-icon" viewBox="0 0 24 24">
+                  <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                  <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                  <line x1="6" y1="1" x2="6" y2="4"></line>
+                  <line x1="10" y1="1" x2="10" y2="4"></line>
+                  <line x1="14" y1="1" x2="14" y2="4"></line>
                 </svg>
-                <input type="text" id="searchInput" class="search-input" placeholder="Search by User ID, Notes, or Device ID...">
               </div>
-
-              <div class="filter-pills">
-                <button class="filter-pill active" data-filter="all">All (<span id="countAll">0</span>)</button>
-                <button class="filter-pill" data-filter="active">🟢 Active (<span id="countActive">0</span>)</button>
-                <button class="filter-pill" data-filter="expired">🔴 Expired (<span id="countExpired">0</span>)</button>
-                <button class="filter-pill" data-filter="suspended">🟡 Suspended (<span id="countSuspended">0</span>)</button>
-                <button class="filter-pill" data-filter="locked">🔒 Device Bound (<span id="countLocked">0</span>)</button>
-                <button class="filter-pill" data-filter="unbound">🔓 Unbound (<span id="countUnbound">0</span>)</button>
+              <div class="brand-title">
+                LMS Java Helper
+                <span class="brand-badge">PRO ADMIN</span>
               </div>
             </div>
 
-            <div class="toolbar-right">
-              <button id="refreshUsersBtn" class="btn btn-secondary">
-                🔄 Sync
+            <nav class="nav-center">
+              <button id="tabUsersBtn" class="nav-tab-btn active" data-tab="users">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span>Users & Licenses</span>
               </button>
-              <button id="openNewUserModalBtn" class="btn btn-primary">
-                ➕ New User License
+              <button id="tabSettingsBtn" class="nav-tab-btn" data-tab="settings">
+                <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"></circle><path d="m21 2-9.6 9.6"></path><path d="m15.5 7.5 3 3L22 7l-3-3"></path></svg>
+                <span>Gemini API Key</span>
               </button>
-            </div>
-          </div>
+              <button id="tabFirebaseBtn" class="nav-tab-btn" data-tab="firebase">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                <span>Cloud & Rules</span>
+              </button>
+              <button id="tabActivityBtn" class="nav-tab-btn" data-tab="activity">
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                <span>Audit Logs</span>
+              </button>
+            </nav>
 
-          <!-- Users Table -->
-          <div class="table-container">
-            <table class="custom-table">
-              <thead>
-                <tr>
-                  <th style="width: 20%;">User ID / Student</th>
-                  <th style="width: 14%;">Password</th>
-                  <th style="width: 10%;">Status</th>
-                  <th style="width: 15%;">Expiry Date</th>
-                  <th style="width: 17%;">Single Device Lock</th>
-                  <th style="width: 9%;">Gemini Key</th>
-                  <th style="width: 15%; text-align: right;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="usersTableBody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-            <div id="usersEmptyState" class="empty-state" style="display: none;">
-              <div class="empty-state-icon">👤</div>
-              <h3>No Users Found</h3>
-              <p>No user accounts match the current filter. Create a new user license to get started!</p>
-              <button id="emptyCreateBtn" class="btn btn-primary">➕ Create First User License</button>
-            </div>
-          </div>
-        </section>
+            <div class="nav-actions">
+              <!-- Quick Search / Command Palette Trigger -->
+              <button id="openCmdPaletteBtn" class="cmd-palette-trigger" title="Command Palette (Ctrl+K)">
+                <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span>Quick Actions</span>
+                <span class="kbd-shortcut">Ctrl+K</span>
+              </button>
 
-        <!-- ── TAB 2: ADMIN DEDICATED GEMINI KEY & SYSTEM SETTINGS ── -->
-        <section id="viewSettings" class="tab-view" style="display: none;">
-          <div class="settings-section-card">
-            <div class="section-header">
-              <h2 class="section-title">🔑 Dedicated Gemini AI API Key (<span id="settingsAdminHandle" style="color: #38bdf8;">@admin</span>)</h2>
-              <p class="section-desc">
-                This Gemini API key belongs to your admin account. Every student license created in your dashboard will automatically use this Gemini key, unless you assign an individual override key!
-              </p>
-            </div>
-
-            <div class="form-group" style="max-width: 650px;">
-              <label class="form-label" for="globalApiKeyInput">Admin Gemini API Key (Google AI Studio)</label>
-              <div style="display: flex; gap: 10px;">
-                <input type="password" id="globalApiKeyInput" class="form-input" placeholder="AIzaSy..." autocomplete="off">
-                <button id="toggleGlobalKeyVisibilityBtn" class="btn btn-secondary btn-sm" type="button">👁️ Show</button>
+              <div id="cloudStatusBadge" class="cloud-status-pill">
+                <span id="cloudStatusDot" class="status-dot"></span>
+                <span id="cloudStatusText">Checking Cloud...</span>
               </div>
-              <div class="form-hint">
-                Get a free or paid API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #38bdf8;">Google AI Studio</a>.
-              </div>
-            </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 18px;">
-              <button id="saveGlobalConfigBtn" class="btn btn-primary">
-                💾 Save Dedicated API Key
-              </button>
-              <button id="testGlobalApiKeyBtn" class="btn btn-secondary">
-                ⚡ Test API Key Live
-              </button>
-            </div>
-
-            <div id="apiKeyTestResult" style="margin-top: 14px; display: none;"></div>
-          </div>
-
-          <div class="settings-section-card">
-            <div class="section-header">
-              <h2 class="section-title">📦 Extension Distribution & Installation Guide</h2>
-              <p class="section-desc">
-                How to give the authorized extension to your students or users:
-              </p>
-            </div>
-
-            <ol style="padding-left: 20px; font-size: 13px; line-height: 1.8; color: #cbd5e1;">
-              <li>Open Google Chrome and navigate to <code class="mono" style="color: #38bdf8;">chrome://extensions/</code>.</li>
-              <li>Toggle <b>"Developer mode"</b> ON in the top-right corner.</li>
-              <li>Click <b>"Load unpacked"</b> and select the <code class="mono" style="color: #38bdf8;">java_coding</code> folder from this workspace.</li>
-              <li>Pin <b>"LMS Java Coding Helper"</b> to the toolbar.</li>
-              <li>When opening the extension popup, students enter their <b>User ID</b> and <b>Password</b> created in this Admin Portal.</li>
-              <li>The extension binds automatically to their machine on first login and runs until the expiration date!</li>
-            </ol>
-          </div>
-        </section>
-
-        <!-- ── TAB 3: FIREBASE SETUP & RULES GUIDE ── -->
-        <section id="viewFirebase" class="tab-view" style="display: none;">
-          <div class="settings-section-card">
-            <div class="section-header">
-              <h2 class="section-title">🔥 Firebase Project & Security Rules Configuration</h2>
-              <p class="section-desc">
-                Current Connected Project: <b style="color: #38bdf8;">buss-60c92</b>
-              </p>
-            </div>
-
-            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px;">
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                  <div style="font-weight: 600; font-size: 14px;">Current Cloud Connection:</div>
-                  <div id="firebaseDiagStatus" style="font-size: 12.5px; color: var(--text-dim); margin-top: 2px;">
-                    Diagnostics running...
-                  </div>
+              <!-- Admin Profile Pill -->
+              <div id="adminProfilePill" class="admin-profile-pill" style="display: none;">
+                <div class="admin-avatar">
+                  <svg class="svg-icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </div>
-                <button id="recheckCloudBtn" class="btn btn-secondary btn-sm">
-                  🔍 Test Cloud Read/Write
+                <div class="admin-details">
+                  <span id="navAdminName" class="admin-name">Admin</span>
+                  <span id="navAdminId" class="admin-handle">@admin</span>
+                </div>
+                <button id="adminLogoutBtn" class="btn-logout" title="Sign out">
+                  <svg class="svg-icon" style="width: 13px; height: 13px;" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+          <!-- ── TAB 1: USERS & LICENSES ── -->
+          <section id="viewUsers" class="tab-view active">
+            <!-- KPI Stats Grid -->
+            <div class="stats-grid">
+              <div class="stat-card" style="--stat-accent: #6366f1; --stat-icon-bg: rgba(99, 102, 241, 0.12);">
+                <div class="stat-content">
+                  <span class="stat-label">Total Licenses</span>
+                  <span id="statTotalUsers" class="stat-value">0</span>
+                  <span class="stat-subtext">Registered in Firestore</span>
+                </div>
+                <div class="stat-icon">
+                  <svg class="svg-icon-lg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </div>
+              </div>
+
+              <div class="stat-card" style="--stat-accent: #10b981; --stat-icon-bg: rgba(16, 185, 129, 0.12);">
+                <div class="stat-content">
+                  <span class="stat-label">Active Licenses</span>
+                  <span id="statActiveUsers" class="stat-value">0</span>
+                  <span class="stat-subtext">Valid & code-generation enabled</span>
+                </div>
+                <div class="stat-icon">
+                  <svg class="svg-icon-lg" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </div>
+              </div>
+
+              <div class="stat-card" style="--stat-accent: #f43f5e; --stat-icon-bg: rgba(244, 63, 94, 0.12);">
+                <div class="stat-content">
+                  <span class="stat-label">Expired</span>
+                  <span id="statExpiredUsers" class="stat-value">0</span>
+                  <span class="stat-subtext">Extension locked until renewal</span>
+                </div>
+                <div class="stat-icon">
+                  <svg class="svg-icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+              </div>
+
+              <div class="stat-card" style="--stat-accent: #06b6d4; --stat-icon-bg: rgba(6, 182, 212, 0.12);">
+                <div class="stat-content">
+                  <span class="stat-label">Device Locked</span>
+                  <span id="statLockedUsers" class="stat-value">0</span>
+                  <span class="stat-subtext">Bound to specific hardware</span>
+                </div>
+                <div class="stat-icon">
+                  <svg class="svg-icon-lg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action & Search Toolbar -->
+            <div class="action-toolbar">
+              <div class="toolbar-left">
+                <div class="search-input-wrap">
+                  <svg class="search-icon svg-icon" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input type="text" id="searchInput" class="search-input" placeholder="Search by student ID, name, batch, device...">
+                  <span class="search-shortcut-badge">/</span>
+                </div>
+
+                <div class="filter-pills">
+                  <button class="filter-pill active" data-filter="all">All <span id="countAll" class="pill-count">0</span></button>
+                  <button class="filter-pill" data-filter="active">Active <span id="countActive" class="pill-count">0</span></button>
+                  <button class="filter-pill" data-filter="expired">Expired <span id="countExpired" class="pill-count">0</span></button>
+                  <button class="filter-pill" data-filter="suspended">Suspended <span id="countSuspended" class="pill-count">0</span></button>
+                  <button class="filter-pill" data-filter="locked">Locked <span id="countLocked" class="pill-count">0</span></button>
+                  <button class="filter-pill" data-filter="unbound">Unbound <span id="countUnbound" class="pill-count">0</span></button>
+                </div>
+              </div>
+
+              <div class="toolbar-right">
+                <button id="openCsvModalBtn" class="btn btn-secondary" title="Batch import students via CSV or list">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                  <span>CSV Import</span>
+                </button>
+                <button id="exportCsvBtn" class="btn btn-secondary" title="Export users list as CSV">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Export</span>
+                </button>
+                <button id="refreshUsersBtn" class="btn btn-secondary" title="Sync from cloud">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  <span>Sync</span>
+                </button>
+                <button id="openNewUserModalBtn" class="btn btn-primary">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span>New User License</span>
                 </button>
               </div>
             </div>
 
-            <h3 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">
-              1. Cloud Firestore Rules (Recommended)
-            </h3>
-            <p style="font-size: 12.5px; color: var(--text-dim);">
-              Go to <a href="https://console.firebase.google.com/project/buss-60c92/firestore/rules" target="_blank" style="color: #38bdf8;">Firebase Console &gt; Firestore Database &gt; Rules</a> and paste:
-            </p>
+            <!-- Users Table -->
+            <div class="table-container">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px; text-align: center;">
+                      <input type="checkbox" id="selectAllCheckbox" class="custom-checkbox" title="Select all visible">
+                    </th>
+                    <th style="width: 22%;">Student / User ID</th>
+                    <th style="width: 14%;">Password</th>
+                    <th style="width: 11%;">Status</th>
+                    <th style="width: 16%;">Expiry Timeline</th>
+                    <th style="width: 17%;">Hardware Binding</th>
+                    <th style="width: 9%;">AI Key</th>
+                    <th style="width: 11%; text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+              <div id="usersEmptyState" class="empty-state" style="display: none;">
+                <div class="empty-state-icon">
+                  <svg class="svg-icon-lg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </div>
+                <h3>No Student Licenses Found</h3>
+                <p>No user accounts match your current filter. Create a new license or batch import via CSV.</p>
+                <button id="emptyCreateBtn" class="btn btn-primary">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span>Create First User License</span>
+                </button>
+              </div>
+            </div>
+          </section>
 
-            <div class="code-snippet-box">
-              <button class="copy-snippet-btn" data-target="firestoreRulesCode">📋 Copy Rules</button>
-              <pre id="firestoreRulesCode">rules_version = '2';
+          <!-- ── TAB 2: GEMINI API KEY & SETTINGS ── -->
+          <section id="viewSettings" class="tab-view" style="display: none;">
+            <div class="settings-section-card">
+              <div class="section-header">
+                <h2 class="section-title">
+                  <svg class="svg-icon" style="color: #818cf8;" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"></circle><path d="m21 2-9.6 9.6"></path><path d="m15.5 7.5 3 3L22 7l-3-3"></path></svg>
+                  <span>Dedicated Gemini AI Key (<span id="settingsAdminHandle" style="color: #38bdf8;">@admin</span>)</span>
+                </h2>
+                <p class="section-desc">
+                  This Gemini AI key belongs directly to your admin workspace. All student licenses created under your dashboard inherit this key automatically, unless individual key overrides are assigned.
+                </p>
+              </div>
+
+              <div class="form-group" style="max-width: 650px;">
+                <label class="form-label" for="globalApiKeyInput">Admin Gemini API Key (Google AI Studio)</label>
+                <div style="display: flex; gap: 10px;">
+                  <input type="password" id="globalApiKeyInput" class="form-input mono" placeholder="AIzaSy..." autocomplete="off">
+                  <button id="toggleGlobalKeyVisibilityBtn" class="btn btn-secondary btn-sm" type="button">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>Show</span>
+                  </button>
+                </div>
+                <div class="form-hint">
+                  Generate free or paid keys securely at <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio &nearr;</a>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button id="saveGlobalConfigBtn" class="btn btn-primary">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  <span>Save API Key</span>
+                </button>
+                <button id="testGlobalApiKeyBtn" class="btn btn-secondary">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  <span>Test API Key Live</span>
+                </button>
+              </div>
+
+              <div id="apiKeyTestResult" style="margin-top: 14px; display: none;"></div>
+            </div>
+
+            <div class="settings-section-card">
+              <div class="section-header">
+                <h2 class="section-title">
+                  <svg class="svg-icon" style="color: #38bdf8;" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                  <span>Extension Distribution & Onboarding Guide</span>
+                </h2>
+                <p class="section-desc">
+                  Provide authorized extension access to your students:
+                </p>
+              </div>
+
+              <ol style="padding-left: 20px; font-size: 13px; line-height: 1.8; color: #cbd5e1;">
+                <li>Open Google Chrome and navigate to <code class="mono" style="color: #38bdf8;">chrome://extensions/</code>.</li>
+                <li>Toggle <b>"Developer mode"</b> ON in the top-right corner.</li>
+                <li>Click <b>"Load unpacked"</b> and choose the extension build folder.</li>
+                <li>Pin <b>"LMS Java Coding Helper"</b> to the browser toolbar.</li>
+                <li>When prompted, students enter their <b>User ID</b> and <b>Password</b> from this portal.</li>
+                <li>Single-device binding locks automatically upon their first login!</li>
+              </ol>
+            </div>
+          </section>
+
+          <!-- ── TAB 3: FIREBASE SETUP & RULES ── -->
+          <section id="viewFirebase" class="tab-view" style="display: none;">
+            <div class="settings-section-card">
+              <div class="section-header">
+                <h2 class="section-title">
+                  <svg class="svg-icon" style="color: #f59e0b;" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                  <span>Firebase Project & Security Rules Configuration</span>
+                </h2>
+                <p class="section-desc">
+                  Active Cloud Infrastructure: <b style="color: #38bdf8;">buss-60c92</b>
+                </p>
+              </div>
+
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 22px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: gap; gap: 14px;">
+                  <div>
+                    <div style="font-weight: 600; font-size: 13.5px;">Cloud Handshake Status:</div>
+                    <div id="firebaseDiagStatus" style="font-size: 12.5px; color: var(--text-dim); margin-top: 3px;">
+                      Diagnostics running...
+                    </div>
+                  </div>
+                  <button id="recheckCloudBtn" class="btn btn-secondary btn-sm">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    <span>Test Cloud Read/Write</span>
+                  </button>
+                </div>
+              </div>
+
+              <h3 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">
+                1. Cloud Firestore Rules (Recommended)
+              </h3>
+              <p style="font-size: 12.5px; color: var(--text-dim);">
+                Deploy in <a href="https://console.firebase.google.com/project/buss-60c92/firestore/rules" target="_blank">Firebase Console &gt; Firestore Rules &nearr;</a>
+              </p>
+
+              <div class="code-snippet-box">
+                <button class="copy-snippet-btn" data-target="firestoreRulesCode">
+                  <svg class="svg-icon" style="width: 13px; height: 13px;" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <span>Copy Rules</span>
+                </button>
+                <pre id="firestoreRulesCode">rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. ADMINS: List enumeration is BLOCKED.
-    // Prevents public scraping of admin accounts and credentials.
     match /admins/{adminId} {
       allow list: if false;
       allow get: if true;
       allow create, update: if true;
       allow delete: if false;
     }
-    // 2. STUDENT LICENSES: Restricted to student lookup & portal operations.
     match /users/{userId} {
       allow get, list: if true;
       allow create, update, delete: if true;
     }
-    // 3. SYSTEM & GLOBAL SETTINGS
     match /system_settings/{settingId} {
       allow read, write: if true;
     }
-    // 4. ACTIVITY AUDIT TRAIL: Tamper-proof append-only logging.
     match /activity_logs/{logId} {
       allow read, create: if true;
       allow update, delete: if false;
     }
   }
 }</pre>
-            </div>
+              </div>
 
-            <h3 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-top: 24px; margin-bottom: 6px;">
-              2. Realtime Database Rules (Locked Root Listing)
-            </h3>
-            <p style="font-size: 12.5px; color: var(--text-dim);">
-              Go to <a href="https://console.firebase.google.com/project/buss-60c92/database/buss-60c92-default-rtdb/rules" target="_blank" style="color: #38bdf8;">Firebase Console &gt; Realtime Database &gt; Rules</a> and paste:
-            </p>
+              <h3 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-top: 24px; margin-bottom: 6px;">
+                2. Realtime Database Rules (Locked Root Listing)
+              </h3>
+              <p style="font-size: 12.5px; color: var(--text-dim);">
+                Deploy in <a href="https://console.firebase.google.com/project/buss-60c92/database/buss-60c92-default-rtdb/rules" target="_blank">Firebase Console &gt; RTDB Rules &nearr;</a>
+              </p>
 
-            <div class="code-snippet-box">
-              <button class="copy-snippet-btn" data-target="rtdbRulesCode">📋 Copy Rules</button>
-              <pre id="rtdbRulesCode">{
+              <div class="code-snippet-box">
+                <button class="copy-snippet-btn" data-target="rtdbRulesCode">
+                  <svg class="svg-icon" style="width: 13px; height: 13px;" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <span>Copy Rules</span>
+                </button>
+                <pre id="rtdbRulesCode">{
   "rules": {
     "admins": {
       ".read": false,
@@ -378,192 +421,601 @@ service cloud.firestore {
     }
   }
 }</pre>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── TAB 4: ACTIVITY LOGS ── -->
-        <section id="viewActivity" class="tab-view" style="display: none;">
-          <div class="settings-section-card">
-            <div class="section-header">
-              <h2 class="section-title">📋 Live Security & Authorization Audit Trail</h2>
-              <p class="section-desc">
-                Real-time tracking of student logins, device registrations, and unbinds:
-              </p>
-            </div>
-
-            <div class="table-container">
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th>Timestamp</th>
-                    <th>User ID</th>
-                    <th>Action</th>
-                    <th>Security Details</th>
-                  </tr>
-                </thead>
-                <tbody id="activityTableBody">
-                  <!-- Dynamically populated -->
-                </tbody>
-              </table>
-              <div id="activityEmptyState" class="empty-state">
-                <div class="empty-state-icon">📜</div>
-                <h3>No Recent Audit Events</h3>
-                <p>Activity logs will automatically appear here as users log in or bind devices.</p>
               </div>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
 
-      <!-- ── MODAL: CREATE / EDIT USER ── -->
-      <div id="userModal" class="modal-overlay">
-        <div class="modal-card">
-          <div class="modal-header">
-            <h3 id="modalUserTitle" class="modal-title">➕ Create User License</h3>
-            <button id="closeUserModalBtn" class="modal-close-btn">&times;</button>
+          <!-- ── TAB 4: AUDIT LOGS ── -->
+          <section id="viewActivity" class="tab-view" style="display: none;">
+            <div class="settings-section-card">
+              <div class="section-header">
+                <h2 class="section-title">
+                  <svg class="svg-icon" style="color: #10b981;" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                  <span>Live Security & Authorization Audit Trail</span>
+                </h2>
+                <p class="section-desc">
+                  Real-time tamper-proof event streaming for student logins, hardware binds, and admin operations:
+                </p>
+              </div>
+
+              <div class="table-container">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 22%;">Timestamp</th>
+                      <th style="width: 18%;">User / Student ID</th>
+                      <th style="width: 20%;">Action Event</th>
+                      <th style="width: 40%;">Security & Telemetry Details</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activityTableBody">
+                    <!-- Dynamically populated -->
+                  </tbody>
+                </table>
+                <div id="activityEmptyState" class="empty-state">
+                  <div class="empty-state-icon">
+                    <svg class="svg-icon-lg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  </div>
+                  <h3>No Audit Events Yet</h3>
+                  <p>Security audit events stream here automatically as students bind devices or access features.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- ── FLOATING BULK ACTIONS BAR (SENIOR-TIER) ── -->
+        <div id="bulkActionBar" class="bulk-action-bar">
+          <span id="bulkCountBadge" class="bulk-count-badge">0 Selected</span>
+          <div class="bulk-actions-group">
+            <button id="bulkExtend7Btn" class="btn btn-secondary btn-sm" title="Extend selected by 7 days">
+              <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span>+7 Days</span>
+            </button>
+            <button id="bulkExtend30Btn" class="btn btn-secondary btn-sm" title="Extend selected by 30 days">
+              <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span>+30 Days</span>
+            </button>
+            <button id="bulkUnbindBtn" class="btn btn-secondary btn-sm" title="Reset device lock for selected">
+              <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+              <span>Unbind Device</span>
+            </button>
+            <button id="bulkToggleStatusBtn" class="btn btn-secondary btn-sm" title="Toggle active status">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+              <span>Toggle Status</span>
+            </button>
+            <button id="bulkDeleteBtn" class="btn btn-danger btn-sm" title="Delete selected licenses">
+              <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span>Delete</span>
+            </button>
+            <button id="bulkClearBtn" class="btn btn-ghost btn-sm" title="Clear selection">
+              &times;
+            </button>
           </div>
-          <form id="userForm">
+        </div>
+
+        <!-- ── MODAL: COMMAND PALETTE (CTRL+K) ── -->
+        <div id="cmdPaletteModal" class="cmd-palette-backdrop">
+          <div class="cmd-palette-card">
+            <div class="cmd-header">
+              <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="cmdInput" class="cmd-input" placeholder="Type a command or search user..." autocomplete="off">
+              <span class="kbd-shortcut">ESC</span>
+            </div>
+            <div id="cmdList" class="cmd-list">
+              <!-- Dynamically populated commands & matching users -->
+            </div>
+            <div class="cmd-footer">
+              <span>Use <kbd class="kbd-shortcut">&uarr;</kbd> <kbd class="kbd-shortcut">&darr;</kbd> to navigate</span>
+              <span><kbd class="kbd-shortcut">&crarr;</kbd> to select</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MODAL: BATCH CSV IMPORT ── -->
+        <div id="csvModal" class="modal-overlay">
+          <div class="modal-card" style="max-width: 600px;">
+            <div class="modal-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="mac-traffic-lights">
+                  <span class="mac-traffic-dot close" id="closeCsvModalDot" title="Close"></span>
+                  <span class="mac-traffic-dot min" title="Minimize"></span>
+                  <span class="mac-traffic-dot max" title="Maximize"></span>
+                </div>
+                <h3 class="modal-title" style="margin: 0;">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                  <span>Batch Import Student Licenses</span>
+                </h3>
+              </div>
+              <button id="closeCsvModalBtn" class="modal-close-btn">&times;</button>
+            </div>
             <div class="modal-body">
+              <p style="font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px;">
+                Paste student IDs/names or drop CSV text. Format: <code>student_id, student_name (optional), password (optional)</code>. Missing passwords will be securely generated.
+              </p>
               <div class="form-group">
-                <label class="form-label" for="inputUserId">
-                  <span>User ID / Username <span style="color: #ef4444;">*</span></span>
-                  <span id="userIdTip" style="font-size: 11px; color: var(--text-dim);">Lowercase ID</span>
-                </label>
-                <input type="text" id="inputUserId" class="form-input" placeholder="e.g. user_101 or student ID" required>
+                <label class="form-label" for="csvTextarea">CSV Content or Student List</label>
+                <textarea id="csvTextarea" class="form-input mono" rows="8" placeholder="student_101, Alice Smith, Pass123!&#10;student_102, Bob Johnson&#10;student_103, Charlie Brown"></textarea>
               </div>
-
               <div class="form-group">
-                <label class="form-label" for="inputDisplayName">Display Name / Student Name</label>
-                <input type="text" id="inputDisplayName" class="form-input" placeholder="e.g. John Doe (Optional)">
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="inputPassword">
-                  <span>Password <span style="color: #ef4444;">*</span></span>
-                  <button type="button" id="genRandomPassBtn" style="background: none; border: none; color: #38bdf8; font-size: 11px; cursor: pointer;">🎲 Generate Password</button>
-                </label>
-                <input type="text" id="inputPassword" class="form-input mono" placeholder="Enter or generate password" required>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="inputExpiryDate">
-                  <span>Expiry Date & Time <span style="color: #ef4444;">*</span></span>
-                </label>
-                <input type="datetime-local" id="inputExpiryDate" class="form-input" required>
-                <div class="preset-row">
-                  <span style="font-size: 11px; color: var(--text-dim); align-self: center;">Quick Presets:</span>
-                  <button type="button" class="preset-chip" data-days="1">+1 Day</button>
-                  <button type="button" class="preset-chip" data-days="7">+7 Days</button>
-                  <button type="button" class="preset-chip" data-days="30">+30 Days</button>
-                  <button type="button" class="preset-chip" data-days="90">+90 Days</button>
-                  <button type="button" class="preset-chip" data-days="365">+1 Year</button>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="inputApiKey">
-                  <span>Dedicated Gemini API Key</span>
-                  <span style="font-size: 11px; color: #10b981;">(Optional)</span>
-                </label>
-                <input type="text" id="inputApiKey" class="form-input" placeholder="Leave blank to use Global System API Key">
-                <div class="form-hint">If left empty, this user will automatically use the Global Gemini Key.</div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="inputNotes">Admin Notes / LMS Batch</label>
-                <input type="text" id="inputNotes" class="form-input" placeholder="e.g. Section A, Exam Batch 2026">
-              </div>
-
-              <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #1e293b; padding: 10px 14px; border-radius: var(--radius-md);">
-                <div>
-                  <div style="font-size: 13px; font-weight: 600;">Account Status</div>
-                  <div style="font-size: 11px; color: var(--text-dim);">Enable or temporarily suspend license</div>
-                </div>
-                <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
-                  <input type="checkbox" id="inputIsActive" checked style="opacity: 0; width: 0; height: 0;">
-                  <span id="toggleTrack" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #10b981; transition: .3s; border-radius: 24px;"></span>
-                </label>
+                <label class="form-label" for="csvExpiryDays">Default Expiry Days</label>
+                <input type="number" id="csvExpiryDays" class="form-input" value="30" min="1" max="730">
               </div>
             </div>
-
             <div class="modal-footer">
-              <button type="button" id="cancelUserModalBtn" class="btn btn-secondary">Cancel</button>
-              <button type="submit" id="saveUserBtn" class="btn btn-primary">💾 Save License</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- ── MODAL: QUICK EXTEND EXPIRY ── -->
-      <div id="extendModal" class="modal-overlay">
-        <div class="modal-card" style="max-width: 440px;">
-          <div class="modal-header">
-            <h3 class="modal-title">⏳ Extend License Expiry</h3>
-            <button id="closeExtendModalBtn" class="modal-close-btn">&times;</button>
-          </div>
-          <div class="modal-body">
-            <p style="font-size: 13px; margin-bottom: 14px;">
-              Extending license for user: <b id="extendModalUsername" style="color: #38bdf8;">user_101</b>
-            </p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <button type="button" class="btn btn-secondary extend-quick-btn" data-days="7">+ 7 Days</button>
-              <button type="button" class="btn btn-secondary extend-quick-btn" data-days="14">+ 14 Days</button>
-              <button type="button" class="btn btn-secondary extend-quick-btn" data-days="30">+ 30 Days</button>
-              <button type="button" class="btn btn-secondary extend-quick-btn" data-days="90">+ 90 Days</button>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" id="cancelExtendModalBtn" class="btn btn-secondary">Close</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── MODAL: SHARE ACCESS CREDENTIALS MESSAGE ── -->
-      <div id="shareModal" class="modal-overlay">
-        <div class="modal-card" style="max-width: 540px;">
-          <div class="modal-header">
-            <h3 class="modal-title">📨 Share User Credentials</h3>
-            <button id="closeShareModalBtn" class="modal-close-btn">&times;</button>
-          </div>
-          <div class="modal-body">
-            <p style="font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px;">
-              Copy this formatted message to share directly with the student via WhatsApp, Telegram, or Email:
-            </p>
-
-            <div style="position: relative;">
-              <textarea id="shareMessageTextarea" class="form-input mono" rows="13" readonly style="
-                width: 100%;
-                font-size: 11px;
-                line-height: 1.5;
-                background: #090d16;
-                color: #38bdf8;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                padding: 12px;
-                border-radius: var(--radius-md);
-                resize: none;
-                white-space: pre;
-              "></textarea>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 14px;">
-              <button type="button" id="copyShareMessageBtn" class="btn btn-primary" style="flex: 2;">
-                📋 Copy Message to Clipboard
+              <button type="button" id="cancelCsvModalBtn" class="btn btn-secondary">Cancel</button>
+              <button type="button" id="submitCsvImportBtn" class="btn btn-primary">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Import & Create Licenses</span>
               </button>
-              <a id="whatsappShareLink" href="#" target="_blank" class="btn btn-secondary" style="flex: 1; text-decoration: none; background: rgba(37, 211, 102, 0.15); border-color: rgba(37, 211, 102, 0.35); color: #86efac; text-align: center;">
-                💬 WhatsApp
-              </a>
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" id="closeShareModalFooterBtn" class="btn btn-secondary">Done</button>
+        </div>
+
+        <!-- ── MODAL: CREATE / EDIT USER ── -->
+        <div id="userModal" class="modal-overlay">
+          <div class="modal-card" style="max-width: 580px;">
+            <div class="modal-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="mac-traffic-lights">
+                  <span class="mac-traffic-dot close" id="closeUserModalDot" title="Close"></span>
+                  <span class="mac-traffic-dot min" title="Minimize"></span>
+                  <span class="mac-traffic-dot max" title="Maximize"></span>
+                </div>
+                <h3 id="modalUserTitle" class="modal-title" style="margin: 0;">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span>Create User License</span>
+                </h3>
+              </div>
+              <button id="closeUserModalBtn" class="modal-close-btn">&times;</button>
+            </div>
+            <form id="userForm">
+              <div class="modal-body">
+                <!-- 1. Extension Credentials -->
+                <div class="form-section-divider">
+                  <span>1. Extension Authorization Credentials</span>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label" for="inputUserId">
+                      <span>User ID / Username <span style="color: #f43f5e;">*</span></span>
+                    </label>
+                    <input type="text" id="inputUserId" class="form-input mono" placeholder="e.g. user_101 or roll no" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="inputDisplayName">Student Full Name</label>
+                    <input type="text" id="inputDisplayName" class="form-input" placeholder="e.g. John Doe">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="inputPassword">
+                    <span>Extension Password <span style="color: #f43f5e;">*</span></span>
+                    <button type="button" id="genRandomPassBtn" style="background: none; border: none; color: #818cf8; font-size: 11.5px; font-weight: 600; cursor: pointer;">🎲 Generate</button>
+                  </label>
+                  <input type="text" id="inputPassword" class="form-input mono" placeholder="Password for extension login" required>
+                </div>
+
+                <!-- 2. LMS Platform Credentials -->
+                <div class="form-section-divider">
+                  <span>2. College / LMS Platform Credentials</span>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label" for="inputLmsUsername">LMS Student ID / Roll No</label>
+                    <input type="text" id="inputLmsUsername" class="form-input mono" placeholder="e.g. 21BCE1042">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="inputLmsPassword">LMS Portal Password</label>
+                    <input type="text" id="inputLmsPassword" class="form-input mono" placeholder="Student LMS password">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="inputLmsDomain">LMS Portal URL / Platform</label>
+                  <input type="text" id="inputLmsDomain" class="form-input" placeholder="e.g. lms.university.edu or Canvas">
+                </div>
+
+                <!-- 3. Batch & Contact Info -->
+                <div class="form-section-divider">
+                  <span>3. Student Batch & Contact Details</span>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label" for="inputBatch">Batch / Department</label>
+                    <input type="text" id="inputBatch" class="form-input" placeholder="e.g. CSE-A 2026">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="inputStudentPhone">Phone / WhatsApp</label>
+                    <input type="text" id="inputStudentPhone" class="form-input" placeholder="+1234567890">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="inputStudentEmail">Student Email</label>
+                  <input type="email" id="inputStudentEmail" class="form-input" placeholder="student@university.edu">
+                </div>
+
+                <!-- 4. License Policy & Gemini Key -->
+                <div class="form-section-divider">
+                  <span>4. License Expiry & Gemini Token</span>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="inputExpiryDate">
+                    <span>Expiry Date & Time <span style="color: #f43f5e;">*</span></span>
+                  </label>
+                  <input type="datetime-local" id="inputExpiryDate" class="form-input" required>
+                  <div class="preset-row">
+                    <span style="font-size: 11px; color: var(--text-dim); align-self: center;">Presets:</span>
+                    <button type="button" class="preset-chip" data-days="1">+1 Day</button>
+                    <button type="button" class="preset-chip" data-days="7">+7 Days</button>
+                    <button type="button" class="preset-chip" data-days="30">+30 Days</button>
+                    <button type="button" class="preset-chip" data-days="90">+90 Days</button>
+                    <button type="button" class="preset-chip" data-days="365">+1 Year</button>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="inputApiKey">
+                    <span>Dedicated Gemini API Key</span>
+                    <span style="font-size: 11px; color: #10b981;">(Optional)</span>
+                  </label>
+                  <input type="text" id="inputApiKey" class="form-input mono" placeholder="Leave blank to inherit Admin Global Key">
+                  <div class="form-hint">If left empty, this student automatically uses your workspace Gemini key.</div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="inputNotes">Admin Notes / Exam Tags</label>
+                  <input type="text" id="inputNotes" class="form-input" placeholder="e.g. Lab Exam Section B">
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.03); padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                  <div>
+                    <div style="font-size: 13px; font-weight: 600;">Account Status</div>
+                    <div style="font-size: 11.5px; color: var(--text-dim);">Enable or temporarily suspend license access</div>
+                  </div>
+                  <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
+                    <input type="checkbox" id="inputIsActive" checked style="opacity: 0; width: 0; height: 0;">
+                    <span id="toggleTrack" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #10b981; transition: .3s; border-radius: 24px;"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" id="cancelUserModalBtn" class="btn btn-secondary">Cancel</button>
+                <button type="submit" id="saveUserBtn" class="btn btn-primary">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  <span>Save License</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
-    </div> <!-- /#dashboardContainer -->
 
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container"></div>
+        <!-- ── MODAL: ADVANCED USER DETAILS SLIDE-OVER ── -->
+        <div id="userDetailModal" class="modal-overlay">
+          <div class="modal-card user-detail-card">
+            <!-- Header Panel -->
+            <div class="user-detail-header-panel">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <div class="mac-traffic-lights">
+                  <span class="mac-traffic-dot close" id="closeDetailModalDot" title="Close"></span>
+                  <span class="mac-traffic-dot min" title="Minimize"></span>
+                  <span class="mac-traffic-dot max" title="Maximize"></span>
+                </div>
+                <div class="user-detail-profile">
+                  <div id="detailAvatar" class="user-detail-avatar">U</div>
+                  <div class="user-detail-titles">
+                    <h2>
+                      <span id="detailDisplayName">Student Name</span>
+                      <span id="detailStatusBadge" class="status-badge badge-active">Active</span>
+                    </h2>
+                    <div class="user-detail-handle">
+                      <span id="detailUsername">@user_id</span>
+                      <span id="detailBatchBadge" style="margin-left: 8px; font-size: 11px; padding: 2px 7px; background: rgba(255,255,255,0.06); border-radius: 4px; color: var(--text-dim);">Batch: None</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button id="closeDetailModalBtn" class="modal-close-btn">&times;</button>
+            </div>
+
+            <!-- Body Grid -->
+            <div class="modal-body">
+              <!-- Quick Action Bar -->
+              <div class="user-detail-actions-strip" style="margin-bottom: 20px;">
+                <button id="detailShareBtn" class="btn btn-primary btn-sm">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  <span>Share Access</span>
+                </button>
+                <button id="detailExtend7Btn" class="btn btn-secondary btn-sm">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>+7d Expiry</span>
+                </button>
+                <button id="detailExtend30Btn" class="btn btn-secondary btn-sm">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>+30d Expiry</span>
+                </button>
+                <button id="detailExtendCustomBtn" class="btn btn-secondary btn-sm">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <span>Custom Expiry</span>
+                </button>
+                <button id="detailUnbindBtn" class="btn btn-secondary btn-sm">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+                  <span>Reset Device</span>
+                </button>
+                <button id="detailToggleStatusBtn" class="btn btn-secondary btn-sm">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                  <span>Toggle Status</span>
+                </button>
+                <button id="detailEditBtn" class="btn btn-secondary btn-sm">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                  <span>Edit</span>
+                </button>
+                <button id="detailDeleteBtn" class="btn btn-danger btn-sm">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  <span>Delete</span>
+                </button>
+              </div>
+
+              <div class="detail-panels-grid">
+                <!-- Panel 1: Extension Authorization -->
+                <div class="detail-panel">
+                  <div class="detail-panel-title">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                    <span>Extension Credentials</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Extension User ID</span>
+                    <span class="detail-kv-val mono">
+                      <span id="detailExtUser">-</span>
+                      <button class="copy-mini-btn" id="copyExtUserBtn" title="Copy User ID"><svg class="svg-icon" style="width: 12px; height: 12px;" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                    </span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Extension Password</span>
+                    <span class="detail-kv-val mono">
+                      <span id="detailExtPass">••••••••</span>
+                      <button class="copy-mini-btn" id="toggleDetailPassBtn" title="Reveal Password"><svg class="svg-icon" style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                      <button class="copy-mini-btn" id="copyExtPassBtn" title="Copy Password"><svg class="svg-icon" style="width: 12px; height: 12px;" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                    </span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Account Status</span>
+                    <span class="detail-kv-val" id="detailExtStatus">Enabled</span>
+                  </div>
+                </div>
+
+                <!-- Panel 2: LMS Institutional Credentials -->
+                <div class="detail-panel">
+                  <div class="detail-panel-title">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                    <span>LMS Institutional Details</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">LMS ID / Roll No</span>
+                    <span class="detail-kv-val mono">
+                      <span id="detailLmsId">Not set</span>
+                      <button class="copy-mini-btn" id="copyLmsIdBtn" title="Copy LMS ID"><svg class="svg-icon" style="width: 12px; height: 12px;" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                    </span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">LMS Password</span>
+                    <span class="detail-kv-val mono">
+                      <span id="detailLmsPass">••••••••</span>
+                      <button class="copy-mini-btn" id="toggleDetailLmsPassBtn" title="Reveal LMS Password"><svg class="svg-icon" style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                      <button class="copy-mini-btn" id="copyLmsPassBtn" title="Copy LMS Password"><svg class="svg-icon" style="width: 12px; height: 12px;" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                    </span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">LMS Portal URL</span>
+                    <span class="detail-kv-val" id="detailLmsDomain">Not specified</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Student Contact</span>
+                    <span class="detail-kv-val" id="detailContact">None</span>
+                  </div>
+                </div>
+
+                <!-- Panel 3: Hardware Security & Single-Device Lock -->
+                <div class="detail-panel">
+                  <div class="detail-panel-title">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>Hardware Binding & Security</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Hardware Lock</span>
+                    <span class="detail-kv-val" id="detailLockStatus"><span class="status-badge badge-unbound">Unbound</span></span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Bound Machine ID</span>
+                    <span class="detail-kv-val mono" id="detailBoundDeviceId">None</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Device Name / OS</span>
+                    <span class="detail-kv-val" id="detailBoundDeviceName">-</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Bound Timestamp</span>
+                    <span class="detail-kv-val" id="detailBoundDate">-</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Last Extension Login</span>
+                    <span class="detail-kv-val" id="detailLastLogin">-</span>
+                  </div>
+                </div>
+
+                <!-- Panel 4: License Expiry & Gemini Token -->
+                <div class="detail-panel">
+                  <div class="detail-panel-title">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"></circle><path d="m21 2-9.6 9.6"></path></svg>
+                    <span>License Expiry & Gemini Key</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Expiry Timeline</span>
+                    <span class="detail-kv-val" id="detailExpiryText">Permanent</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Active Gemini AI Key</span>
+                    <span class="detail-kv-val mono" id="detailGeminiKey">Global Workspace Key</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Admin Notes / Batch</span>
+                    <span class="detail-kv-val" id="detailNotes">-</span>
+                  </div>
+                  <div class="detail-kv-row">
+                    <span class="detail-kv-label">Created At</span>
+                    <span class="detail-kv-val" id="detailCreatedAt">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer">
+              <button type="button" id="closeDetailModalFooterBtn" class="btn btn-secondary">Done</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MODAL: EXTEND LICENSE EXPIRY & CUSTOM DATE (macOS Liquid Glass) ── -->
+        <div id="extendModal" class="modal-overlay">
+          <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="mac-traffic-lights">
+                  <span class="mac-traffic-dot close" id="closeExtendModalDot" title="Close"></span>
+                  <span class="mac-traffic-dot min" title="Minimize"></span>
+                  <span class="mac-traffic-dot max" title="Maximize"></span>
+                </div>
+                <h3 class="modal-title" style="margin: 0; font-size: 14.5px;">
+                  <svg class="svg-icon" style="color: #818cf8;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>Extend License Expiry</span>
+                </h3>
+              </div>
+              <button id="closeExtendModalBtn" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 22px 24px;">
+              <!-- Student Status Banner -->
+              <div class="extend-user-summary-card">
+                <div class="extend-user-summary-avatar" id="extendModalAvatar">U</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="extendModalUsername" style="font-weight: 700; color: var(--text-main); font-size: 14.5px;">user_101</span>
+                    <span id="extendModalStatusBadge" class="status-badge badge-active">Active</span>
+                  </div>
+                  <div id="extendModalCurrentExpiryText" style="font-size: 12px; color: var(--text-dim); margin-top: 3px;">
+                    Current Expiry: Loading...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Presets -->
+              <div style="margin-top: 18px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Quick Presets (+ Days)</span>
+                  <span style="font-size: 11px; color: var(--text-dim);">Auto-calculates date</span>
+                </div>
+                <div class="extend-presets-grid">
+                  <button type="button" class="btn btn-secondary extend-preset-btn" data-days="1">+1 Day</button>
+                  <button type="button" class="btn btn-secondary extend-preset-btn" data-days="7">+7 Days</button>
+                  <button type="button" class="btn btn-secondary extend-preset-btn" data-days="14">+14 Days</button>
+                  <button type="button" class="btn btn-secondary extend-preset-btn" data-days="30">+30 Days</button>
+                  <button type="button" class="btn btn-secondary extend-preset-btn" data-days="90">+90 Days</button>
+                  <button type="button" class="btn btn-secondary extend-preset-btn" data-days="365">+1 Year</button>
+                </div>
+              </div>
+
+              <!-- Custom Date & Time Picker Section -->
+              <div style="margin-top: 20px;">
+                <label for="inputCustomExtendExpiry" class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
+                  <span>Custom Expiration Date & Time</span>
+                  <button type="button" id="setPermanentExpiryBtn" style="font-size: 11px; color: var(--brand-primary); background: none; border: none; cursor: pointer; text-decoration: underline;">
+                    Never Expires (Permanent)
+                  </button>
+                </label>
+                <div style="position: relative;">
+                  <input type="datetime-local" id="inputCustomExtendExpiry" class="form-input extend-datetime-input" />
+                </div>
+                <!-- Dynamic relative preview badge -->
+                <div id="extendCalculatedPreview" class="extend-preview-badge">
+                  <svg class="svg-icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span id="extendCalculatedPreviewText">Select or adjust date above</span>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between;">
+              <button type="button" id="cancelExtendModalBtn" class="btn btn-secondary">Cancel</button>
+              <button type="button" id="saveCustomExtendBtn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Update Expiration</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MODAL: SHARE CREDENTIALS MESSAGE ── -->
+        <div id="shareModal" class="modal-overlay">
+          <div class="modal-card" style="max-width: 540px;">
+            <div class="modal-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="mac-traffic-lights">
+                  <span class="mac-traffic-dot close" id="closeShareModalDot" title="Close"></span>
+                  <span class="mac-traffic-dot min" title="Minimize"></span>
+                  <span class="mac-traffic-dot max" title="Maximize"></span>
+                </div>
+                <h3 class="modal-title" style="margin: 0;">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  <span>Share Student Credentials</span>
+                </h3>
+              </div>
+              <button id="closeShareModalBtn" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p style="font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px;">
+                Copy or directly send these onboarding details to the student via WhatsApp, Telegram, or Email:
+              </p>
+
+              <div>
+                <textarea id="shareMessageTextarea" class="form-input mono" rows="12" readonly style="
+                  font-size: 11.5px;
+                  line-height: 1.5;
+                  background: rgba(0, 0, 0, 0.035);
+                  color: var(--text-main);
+                  border: 1px solid var(--glass-border-medium);
+                  padding: 12px;
+                  border-radius: var(--radius-md);
+                  resize: none;
+                  white-space: pre;
+                "></textarea>
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-top: 14px;">
+                <button type="button" id="copyShareMessageBtn" class="btn btn-primary" style="flex: 2;">
+                  <svg class="svg-icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <span>Copy to Clipboard</span>
+                </button>
+                <a id="whatsappShareLink" href="#" target="_blank" class="btn btn-secondary" style="flex: 1; text-decoration: none; background: rgba(37, 211, 102, 0.12); border-color: rgba(37, 211, 102, 0.35); color: #166534; font-weight: 600; text-align: center;">
+                  <span>💬 WhatsApp</span>
+                </a>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="closeShareModalFooterBtn" class="btn btn-secondary">Done</button>
+            </div>
+          </div>
+        </div>
+      </div> <!-- /#dashboardContainer -->
+
+      <!-- Toast Container -->
+      <div id="toastContainer" class="toast-container"></div>
     </div>
 
     <script type="module" src="/src/main.js"></script>
