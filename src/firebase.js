@@ -24,7 +24,7 @@ export const firebaseConfig = {
     storageBucket: (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET) || "buss-60c92.firebasestorage.app",
     messagingSenderId: (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID) || "437938732668",
     appId: (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_APP_ID) || "1:437938732668:web:6ac6a48d442dcb516453f9",
-    measurementId: "G-TJWK77P8D8",
+    measurementId: (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID) || "G-TJWK77P8D8",
     rtdbUrl: (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_RTDB_URL) || "https://buss-60c92-default-rtdb.firebaseio.com"
 };
 
@@ -555,6 +555,13 @@ export async function saveUser(userData) {
         username: username,
         displayName: userData.displayName || username,
         password: userData.password.trim(),
+        // LMS institutional credentials & student profile
+        lmsUsername: userData.lmsUsername ? userData.lmsUsername.trim() : "",
+        lmsPassword: userData.lmsPassword ? userData.lmsPassword.trim() : "",
+        lmsDomain: userData.lmsDomain ? userData.lmsDomain.trim() : "",
+        batch: userData.batch ? userData.batch.trim() : "",
+        studentEmail: userData.studentEmail ? userData.studentEmail.trim() : "",
+        studentPhone: userData.studentPhone ? userData.studentPhone.trim() : "",
         expiryDate: userData.expiryDate || null,
         apiKey: userData.apiKey ? userData.apiKey.trim() : "",
         adminId: adminId, // STRICTLY ISOLATED TO THIS ADMIN
@@ -690,6 +697,38 @@ export async function extendUserExpiry(username, additionalDays) {
         notifyState();
     }
     return { success: true, newExpiry };
+}
+
+export async function setUserExactExpiry(username, isoDateString) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanId = username.trim().toLowerCase();
+    const patch = {
+        expiryDate: isoDateString,
+        isActive: true,
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        const userRef = doc(db, "users", cleanId);
+        await updateDoc(userRef, patch);
+    } catch (e) {
+        try {
+            await fetch(`${firebaseConfig.rtdbUrl}/users/${encodeURIComponent(cleanId)}.json`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(patch)
+            });
+        } catch (err) { }
+    }
+
+    const idx = usersCache.findIndex(u => u.username === cleanId || u.id === cleanId);
+    if (idx >= 0) {
+        usersCache[idx] = { ...usersCache[idx], ...patch };
+        notifyState();
+    }
+    return { success: true, newExpiry: isoDateString };
 }
 
 export async function toggleUserStatus(username, makeActive) {
