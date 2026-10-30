@@ -34,11 +34,13 @@ export const db = getFirestore(app);
 
 // In-memory cache & state keys
 const LOCAL_STORAGE_USERS = "lms_admin_portal_users";
+const LOCAL_STORAGE_LICENSES = "lms_admin_portal_licenses";
 const LOCAL_STORAGE_ADMINS = "lms_admin_portal_admins";
 const LOCAL_STORAGE_SESSION = "lms_admin_active_session";
 const LOCAL_STORAGE_CONFIG = "lms_admin_portal_config";
 
 let usersCache = [];
+let licensesCache = [];
 let adminsCache = [];
 let currentAdmin = null;
 let globalConfigCache = { globalGeminiApiKey: "" };
@@ -49,6 +51,8 @@ let listeners = [];
 try {
     const savedU = localStorage.getItem(LOCAL_STORAGE_USERS);
     if (savedU) usersCache = JSON.parse(savedU);
+    const savedL = localStorage.getItem(LOCAL_STORAGE_LICENSES);
+    if (savedL) licensesCache = JSON.parse(savedL);
     const savedA = localStorage.getItem(LOCAL_STORAGE_ADMINS);
     if (savedA) {
         adminsCache = JSON.parse(savedA);
@@ -64,6 +68,7 @@ try {
 function persistLocalData() {
     try {
         localStorage.setItem(LOCAL_STORAGE_USERS, JSON.stringify(usersCache));
+        localStorage.setItem(LOCAL_STORAGE_LICENSES, JSON.stringify(licensesCache));
         localStorage.setItem(LOCAL_STORAGE_ADMINS, JSON.stringify(adminsCache));
         localStorage.setItem(LOCAL_STORAGE_CONFIG, JSON.stringify(globalConfigCache));
         if (currentAdmin) {
@@ -89,14 +94,16 @@ function notifySingleListener(fn) {
         fn({
             admin: null,
             users: [],
+            licenses: [],
             config: { globalGeminiApiKey: "" },
             connection: { ...connectionStatus }
         });
         return;
     }
 
-    // Isolate users: Admin only sees their own students!
+    // Isolate users: Admin only sees their own students & licenses!
     const scopedUsers = usersCache.filter(u => u.adminId === currentAdmin.adminId);
+    const scopedLicenses = licensesCache.filter(l => !l.adminId || l.adminId === currentAdmin.adminId);
 
     const scopedConfig = {
         globalGeminiApiKey: (currentAdmin && currentAdmin.geminiApiKey) 
@@ -107,6 +114,7 @@ function notifySingleListener(fn) {
     fn({
         admin: { ...currentAdmin },
         users: [...scopedUsers],
+        licenses: [...scopedLicenses],
         config: scopedConfig,
         connection: { ...connectionStatus }
     });
@@ -139,6 +147,7 @@ export function setCurrentAdmin(admin) {
 export function logoutAdmin() {
     currentAdmin = null;
     usersCache = [];
+    licensesCache = [];
     stopRealtimeSync();
     notifyState();
 }
@@ -378,28 +387,100 @@ export async function testCloudConnection() {
 
 // ── INITIALIZE REALTIME SYNC (STRICTLY GATED TO AUTHENTICATED ADMIN) ──
 let usersUnsubscribe = null;
+let licensesUnsubscribe = null;
 let configUnsubscribe = null;
+let rtdbPollInterval = null;
 
 export function stopRealtimeSync() {
     if (usersUnsubscribe) {
         try { usersUnsubscribe(); } catch(e){}
         usersUnsubscribe = null;
     }
+    if (licensesUnsubscribe) {
+        try { licensesUnsubscribe(); } catch(e){}
+        licensesUnsubscribe = null;
+    }
     if (configUnsubscribe) {
         try { configUnsubscribe(); } catch(e){}
         configUnsubscribe = null;
     }
+    if (rtdbPollInterval) {
+        try { clearInterval(rtdbPollInterval); } catch(e){}
+        rtdbPollInterval = null;
+    }
     usersCache = [];
+    licensesCache = [];
     notifyState();
+}
+
+export async function syncLicensesFromRtdb() {
+    try {
+        const res = await fetch(`${firebaseConfig.rtdbUrl}/license_keys.json`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data && typeof data === "object") {
+                const list = [];
+                Object.keys(data).forEach(k => {
+                    if (data[k]) list.push({ key: k, id: k, ...data[k] });
+                });
+                licensesCache = list;
+                notifyState();
+                return;
+            }
+        }
+    } catch (e) { }
+
+    // Fallback: check /users.json for any keys starting with "KEY_"
+    try {
+        const res2 = await fetch(`${firebaseConfig.rtdbUrl}/users.json`);
+        if (res2.ok) {
+            const data2 = await res2.json();
+            if (data2 && typeof data2 === "object") {
+                const list = [];
+                const studentList = [];
+                Object.keys(data2).forEach(k => {
+                    const item = data2[k];
+                    if (!item) return;
+                    if (k.startsWith("KEY_")) {
+                        const cleanKey = k.replace(/^KEY_/, "");
+                        list.push({ key: cleanKey, id: cleanKey, ...item });
+                    } else if (k.startsWith("REG_")) {
+                        const cleanId = k.replace(/^REG_/, "");
+                        studentList.push({ id: cleanId, userId: cleanId, ...item });
+                    } else if (/^\d{8}$/.test(k)) {
+                        studentList.push({ id: k, userId: k, ...item });
+                    }
+                });
+
+                if (list.length > 0) {
+                    licensesCache = list;
+                }
+                if (studentList.length > 0 && usersCache.length === 0) {
+                    usersCache = studentList;
+                }
+                notifyState();
+            }
+        }
+    } catch(e) { }
 }
 
 export function initRealtimeSync() {
     // SECURITY GATE: Never sync student records unless admin is authenticated!
     if (!currentAdmin || !currentAdmin.adminId) {
         usersCache = [];
+        licensesCache = [];
         notifyState();
         return;
     }
+
+    // Always run initial RTDB sync
+    syncLicensesFromRtdb();
+
+    // Setup periodic 8s polling for background updates
+    if (rtdbPollInterval) clearInterval(rtdbPollInterval);
+    rtdbPollInterval = setInterval(() => {
+        syncLicensesFromRtdb();
+    }, 8000);
 
     testCloudConnection().then(() => {
         try {
@@ -425,6 +506,25 @@ export function initRealtimeSync() {
                 }
             });
 
+            // License Keys Snapshot
+            if (licensesUnsubscribe) licensesUnsubscribe();
+            try {
+                const licCol = collection(db, "license_keys");
+                licensesUnsubscribe = onSnapshot(licCol, (snapshot) => {
+                    const list = [];
+                    snapshot.forEach(docSnap => {
+                        list.push({ key: docSnap.id, id: docSnap.id, ...docSnap.data() });
+                    });
+                    licensesCache = list;
+                    notifyState();
+                }, (error) => {
+                    console.warn("Firestore license_keys onSnapshot error, falling back to RTDB:", error);
+                    syncLicensesFromRtdb();
+                });
+            } catch (err) {
+                syncLicensesFromRtdb();
+            }
+
             if (configUnsubscribe) configUnsubscribe();
             const configDoc = doc(db, "system_settings", "config");
             configUnsubscribe = onSnapshot(configDoc, (snap) => {
@@ -435,6 +535,7 @@ export function initRealtimeSync() {
             }, (err) => { });
         } catch (e) {
             console.error("Failed to attach Firestore listeners:", e);
+            syncLicensesFromRtdb();
         }
     });
 }
@@ -654,4 +755,293 @@ export async function testGeminiApiKey(apiKey) {
     } catch (err) {
         return { success: false, error: err.message, latencyMs: Date.now() - startTime };
     }
+}
+
+// ── WINDOWS-STYLE PRODUCT ACTIVATION KEYS (ONE-TIME, HARDWARE-LOCKED, 5-USER TRACKED) ──
+
+export function generateWindowsLicenseKey() {
+    const chars = "2346789BCDFGHJKMNPQRTVWXY";
+    const getRandomSeg = () => {
+        let seg = "";
+        const cryptoObj = (typeof window !== "undefined" && (window.crypto || window.msCrypto));
+        if (cryptoObj && cryptoObj.getRandomValues) {
+            const arr = new Uint8Array(5);
+            cryptoObj.getRandomValues(arr);
+            for (let i = 0; i < 5; i++) {
+                seg += chars[arr[i] % chars.length];
+            }
+        } else {
+            for (let i = 0; i < 5; i++) {
+                seg += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+        }
+        return seg;
+    };
+    return `${getRandomSeg()}-${getRandomSeg()}-${getRandomSeg()}-${getRandomSeg()}-${getRandomSeg()}`;
+}
+
+export async function createLicenseKeys({ durationDays, notes, count = 1 }) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required before creating product keys.");
+    }
+
+    const qty = Math.max(1, Math.min(50, parseInt(count) || 1));
+    const days = Math.max(1, parseInt(durationDays) || 30);
+    const createdKeys = [];
+
+    for (let i = 0; i < qty; i++) {
+        let key = generateWindowsLicenseKey();
+        while (licensesCache.some(l => l.key === key)) {
+            key = generateWindowsLicenseKey();
+        }
+
+        const payload = {
+            key: key,
+            adminId: currentAdmin.adminId,
+            durationDays: days,
+            status: "UNUSED", // UNUSED | ACTIVE | EXPIRED | REVOKED
+            createdAt: new Date().toISOString(),
+            activatedAt: null,
+            expiresAt: null,
+            hardwareId: null,
+            machineName: null,
+            isOneTimeUsed: false,
+            registeredUsers: [],
+            maxUsers: 5,
+            notes: notes ? String(notes).trim() : "",
+            updatedAt: new Date().toISOString()
+        };
+
+        // 1. Save to Firestore
+        try {
+            const keyRef = doc(db, "license_keys", key);
+            await setDoc(keyRef, payload, { merge: true });
+        } catch (e) {
+            console.warn("Firestore save failed for key:", key, e);
+        }
+
+        // 2. Save to RTDB (both /license_keys and /users/KEY_ for instant compatibility)
+        try {
+            await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(key)}.json`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        } catch (err) { }
+
+        try {
+            await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(key)}.json`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        } catch (err) { }
+
+        // Update local cache
+        const idx = licensesCache.findIndex(l => l.key === key);
+        if (idx >= 0) {
+            licensesCache[idx] = { ...payload };
+        } else {
+            licensesCache.push({ ...payload });
+        }
+
+        createdKeys.push(payload);
+    }
+
+    notifyState();
+    return { success: true, keys: createdKeys };
+}
+
+export async function extendLicenseKey(key, additionalDays) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanKey = String(key).trim().toUpperCase();
+    const lic = licensesCache.find(l => l.key === cleanKey);
+    const extra = parseInt(additionalDays) || 30;
+
+    let patch = {};
+    if (lic && lic.expiresAt) {
+        let baseTime = Date.now();
+        const existingExp = new Date(lic.expiresAt).getTime();
+        if (existingExp > baseTime) baseTime = existingExp;
+        const newExpiry = new Date(baseTime + (extra * 24 * 60 * 60 * 1000)).toISOString();
+        patch = {
+            expiresAt: newExpiry,
+            status: "ACTIVE",
+            updatedAt: new Date().toISOString()
+        };
+    } else {
+        const curDur = (lic && lic.durationDays) ? lic.durationDays : 30;
+        patch = {
+            durationDays: curDur + extra,
+            updatedAt: new Date().toISOString()
+        };
+    }
+
+    try {
+        await updateDoc(doc(db, "license_keys", cleanKey), patch);
+    } catch(e) { }
+
+    try {
+        await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+    } catch (e) { }
+
+    const idx = licensesCache.findIndex(l => l.key === cleanKey);
+    if (idx >= 0) {
+        licensesCache[idx] = { ...licensesCache[idx], ...patch };
+        notifyState();
+    }
+
+    return { success: true, patch };
+}
+
+export async function resetLicenseKeyDevice(key) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanKey = String(key).trim().toUpperCase();
+    const patch = {
+        hardwareId: null,
+        machineName: null,
+        isOneTimeUsed: false,
+        status: "UNUSED",
+        activatedAt: null,
+        expiresAt: null,
+        registeredUsers: [],
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        await updateDoc(doc(db, "license_keys", cleanKey), patch);
+    } catch(e) { }
+
+    try {
+        await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+    } catch (e) { }
+
+    const idx = licensesCache.findIndex(l => l.key === cleanKey);
+    if (idx >= 0) {
+        licensesCache[idx] = { ...licensesCache[idx], ...patch };
+        notifyState();
+    }
+
+    return { success: true };
+}
+
+export async function toggleLicenseKeyRevoke(key, revoke) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanKey = String(key).trim().toUpperCase();
+    const lic = licensesCache.find(l => l.key === cleanKey);
+    const newStatus = revoke ? "REVOKED" : (lic && lic.hardwareId ? "ACTIVE" : "UNUSED");
+    const patch = {
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        await updateDoc(doc(db, "license_keys", cleanKey), patch);
+    } catch(e) { }
+
+    try {
+        await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+    } catch (e) { }
+
+    const idx = licensesCache.findIndex(l => l.key === cleanKey);
+    if (idx >= 0) {
+        licensesCache[idx] = { ...licensesCache[idx], ...patch };
+        notifyState();
+    }
+
+    return { success: true, status: newStatus };
+}
+
+export async function clearKeyRegisteredUsers(key) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanKey = String(key).trim().toUpperCase();
+    const patch = {
+        registeredUsers: [],
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        await updateDoc(doc(db, "license_keys", cleanKey), patch);
+    } catch(e) { }
+
+    try {
+        await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+    } catch (e) { }
+
+    const idx = licensesCache.findIndex(l => l.key === cleanKey);
+    if (idx >= 0) {
+        licensesCache[idx] = { ...licensesCache[idx], ...patch };
+        notifyState();
+    }
+
+    return { success: true };
+}
+
+export async function deleteLicenseKey(key) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanKey = String(key).trim().toUpperCase();
+
+    try {
+        await deleteDoc(doc(db, "license_keys", cleanKey));
+    } catch(e) { }
+
+    try {
+        await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(cleanKey)}.json`, {
+            method: "DELETE"
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(cleanKey)}.json`, {
+            method: "DELETE"
+        });
+    } catch (e) { }
+
+    licensesCache = licensesCache.filter(l => l.key !== cleanKey);
+    notifyState();
+
+    return { success: true };
 }

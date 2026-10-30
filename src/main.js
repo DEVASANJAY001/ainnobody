@@ -16,32 +16,103 @@ import {
     testGeminiApiKey,
     testCloudConnection,
     firebaseConfig,
-    db
+    db,
+    generateWindowsLicenseKey,
+    createLicenseKeys,
+    extendLicenseKey,
+    resetLicenseKeyDevice,
+    toggleLicenseKeyRevoke,
+    clearKeyRegisteredUsers,
+    deleteLicenseKey
 } from './firebase.js';
 
 // Application State
 let appState = {
     admin: null,
     users: [],
+    licenses: [],
     config: { globalGeminiApiKey: '' },
     connection: { connected: false, mode: 'checking', error: null },
-    currentTab: 'users',
+    currentTab: 'licenses', // Default to Windows License Keys
     currentFilter: 'all',
+    licenseFilter: 'all',
     searchQuery: '',
+    licenseSearchQuery: '',
+    selectedDurationDays: 30,
     editingUser: null,
-    targetExtendUser: null
+    targetExtendUser: null,
+    targetExtendLicenseKey: null,
+    targetManageStudentsKey: null
 };
 
-// UI Elements
+// Tab UI Elements
+const tabLicensesBtn = document.getElementById('tabLicensesBtn');
 const tabUsersBtn = document.getElementById('tabUsersBtn');
 const tabSettingsBtn = document.getElementById('tabSettingsBtn');
 const tabFirebaseBtn = document.getElementById('tabFirebaseBtn');
 const tabActivityBtn = document.getElementById('tabActivityBtn');
 
+const viewLicenses = document.getElementById('viewLicenses');
 const viewUsers = document.getElementById('viewUsers');
 const viewSettings = document.getElementById('viewSettings');
 const viewFirebase = document.getElementById('viewFirebase');
 const viewActivity = document.getElementById('viewActivity');
+
+// License Stats & Filter Elements
+const statTotalLicenses = document.getElementById('statTotalLicenses');
+const statActiveLicenses = document.getElementById('statActiveLicenses');
+const statUnusedLicenses = document.getElementById('statUnusedLicenses');
+const statExpiredLicenses = document.getElementById('statExpiredLicenses');
+
+const searchLicensesInput = document.getElementById('searchLicensesInput');
+const licFilterPills = document.querySelectorAll('[data-lic-filter]');
+const refreshLicensesBtn = document.getElementById('refreshLicensesBtn');
+const exportLicensesBtn = document.getElementById('exportLicensesBtn');
+const licensesTableBody = document.getElementById('licensesTableBody');
+const licensesEmptyState = document.getElementById('licensesEmptyState');
+
+const licCountAll = document.getElementById('licCountAll');
+const licCountActive = document.getElementById('licCountActive');
+const licCountUnused = document.getElementById('licCountUnused');
+const licCountExpired = document.getElementById('licCountExpired');
+const licCountRevoked = document.getElementById('licCountRevoked');
+
+// Generator Form Elements
+const licenseGeneratorForm = document.getElementById('licenseGeneratorForm');
+const btnGenerateLicense = document.getElementById('btnGenerateLicense');
+const durationPresetBtns = document.querySelectorAll('.duration-preset-btn');
+const inputCustomDays = document.getElementById('inputCustomDays');
+const inputKeyQuantity = document.getElementById('inputKeyQuantity');
+const inputKeyNotes = document.getElementById('inputKeyNotes');
+const liveKeyPreview = document.getElementById('liveKeyPreview');
+
+// Generated Keys Modal Elements
+const generatedKeysModal = document.getElementById('generatedKeysModal');
+const generatedKeysCount = document.getElementById('generatedKeysCount');
+const generatedKeysDuration = document.getElementById('generatedKeysDuration');
+const generatedKeysTextarea = document.getElementById('generatedKeysTextarea');
+const copyAllGeneratedKeysBtn = document.getElementById('copyAllGeneratedKeysBtn');
+const downloadGeneratedKeysBtn = document.getElementById('downloadGeneratedKeysBtn');
+const closeGeneratedKeysModalBtn = document.getElementById('closeGeneratedKeysModalBtn');
+const closeGeneratedKeysFooterBtn = document.getElementById('closeGeneratedKeysFooterBtn');
+
+// Extend License Modal Elements
+const extendLicenseModal = document.getElementById('extendLicenseModal');
+const extendLicenseKeyDisplay = document.getElementById('extendLicenseKeyDisplay');
+const extendLicenseCurrentStatus = document.getElementById('extendLicenseCurrentStatus');
+const closeExtendLicenseModalBtn = document.getElementById('closeExtendLicenseModalBtn');
+const cancelExtendLicenseModalBtn = document.getElementById('cancelExtendLicenseModalBtn');
+const extendLicQuickBtns = document.querySelectorAll('.extend-lic-quick-btn');
+
+// Manage 5 Students Modal Elements
+const manageStudentsModal = document.getElementById('manageStudentsModal');
+const manageModalDeviceName = document.getElementById('manageModalDeviceName');
+const manageModalHwid = document.getElementById('manageModalHwid');
+const manageModalUserCountBadge = document.getElementById('manageModalUserCountBadge');
+const manageModalUserList = document.getElementById('manageModalUserList');
+const btnClearRegisteredUsersBtn = document.getElementById('btnClearRegisteredUsersBtn');
+const closeManageStudentsModalBtn = document.getElementById('closeManageStudentsModalBtn');
+const closeManageStudentsFooterBtn = document.getElementById('closeManageStudentsFooterBtn');
 
 const cloudStatusBadge = document.getElementById('cloudStatusBadge');
 const cloudStatusDot = document.getElementById('cloudStatusDot');
@@ -191,14 +262,19 @@ function toLocalDatetimeInput(date) {
 function switchTab(tabId) {
     appState.currentTab = tabId;
 
-    [tabUsersBtn, tabSettingsBtn, tabFirebaseBtn, tabActivityBtn].forEach(btn => btn?.classList.remove('active'));
-    [viewUsers, viewSettings, viewFirebase, viewActivity].forEach(view => {
+    [tabLicensesBtn, tabUsersBtn, tabSettingsBtn, tabFirebaseBtn, tabActivityBtn].forEach(btn => btn?.classList.remove('active'));
+    [viewLicenses, viewUsers, viewSettings, viewFirebase, viewActivity].forEach(view => {
         if (view) view.style.display = 'none';
     });
 
-    if (tabId === 'users') {
+    if (tabId === 'licenses') {
+        tabLicensesBtn?.classList.add('active');
+        if (viewLicenses) viewLicenses.style.display = 'block';
+        renderLicenses();
+    } else if (tabId === 'users') {
         tabUsersBtn?.classList.add('active');
         if (viewUsers) viewUsers.style.display = 'block';
+        renderUsers();
     } else if (tabId === 'settings') {
         tabSettingsBtn?.classList.add('active');
         if (viewSettings) viewSettings.style.display = 'block';
@@ -212,6 +288,7 @@ function switchTab(tabId) {
     }
 }
 
+tabLicensesBtn?.addEventListener('click', () => switchTab('licenses'));
 tabUsersBtn?.addEventListener('click', () => switchTab('users'));
 tabSettingsBtn?.addEventListener('click', () => switchTab('settings'));
 tabFirebaseBtn?.addEventListener('click', () => switchTab('firebase'));
@@ -244,6 +321,313 @@ function updateConnectionUI(conn) {
             `;
         }
     }
+}
+
+// ── RENDER SEB PRODUCT LICENSES (WINDOWS STYLE) ──
+function renderLicenses() {
+    const licenses = appState.licenses || [];
+    const now = Date.now();
+
+    // 1. Calculate KPI Counts
+    let activeCount = 0;
+    let unusedCount = 0;
+    let expiredCount = 0;
+    let revokedCount = 0;
+
+    licenses.forEach(l => {
+        const isRevoked = l.status === 'REVOKED';
+        const isExp = l.expiresAt && new Date(l.expiresAt).getTime() < now;
+        const isBound = !!(l.hardwareId && l.hardwareId.trim() !== '');
+
+        if (isRevoked) {
+            revokedCount++;
+        } else if (isExp) {
+            expiredCount++;
+        } else if (isBound) {
+            activeCount++;
+        } else {
+            unusedCount++;
+        }
+    });
+
+    if (statTotalLicenses) statTotalLicenses.innerText = licenses.length;
+    if (statActiveLicenses) statActiveLicenses.innerText = activeCount;
+    if (statUnusedLicenses) statUnusedLicenses.innerText = unusedCount;
+    if (statExpiredLicenses) statExpiredLicenses.innerText = (expiredCount + revokedCount);
+
+    if (licCountAll) licCountAll.innerText = licenses.length;
+    if (licCountActive) licCountActive.innerText = activeCount;
+    if (licCountUnused) licCountUnused.innerText = unusedCount;
+    if (licCountExpired) licCountExpired.innerText = expiredCount;
+    if (licCountRevoked) licCountRevoked.innerText = revokedCount;
+
+    // 2. Filter Licenses
+    const queryStr = (appState.licenseSearchQuery || '').toLowerCase().trim();
+    const filter = appState.licenseFilter || 'all';
+
+    const filtered = licenses.filter(l => {
+        const isRevoked = l.status === 'REVOKED';
+        const isExp = l.expiresAt && new Date(l.expiresAt).getTime() < now;
+        const isBound = !!(l.hardwareId && l.hardwareId.trim() !== '');
+
+        if (filter === 'active' && (!isBound || isExp || isRevoked)) return false;
+        if (filter === 'unused' && (isBound || isExp || isRevoked)) return false;
+        if (filter === 'expired' && (!isExp || isRevoked)) return false;
+        if (filter === 'revoked' && !isRevoked) return false;
+
+        if (queryStr) {
+            const matchKey = (l.key || '').toLowerCase().includes(queryStr);
+            const matchHwid = (l.hardwareId || '').toLowerCase().includes(queryStr);
+            const matchMachine = (l.machineName || '').toLowerCase().includes(queryStr);
+            const matchNotes = (l.notes || '').toLowerCase().includes(queryStr);
+            const matchStudents = (l.registeredUsers || []).some(id => String(id).toLowerCase().includes(queryStr));
+            if (!matchKey && !matchHwid && !matchMachine && !matchNotes && !matchStudents) return false;
+        }
+
+        return true;
+    });
+
+    // 3. Render Table Rows
+    if (!licensesTableBody) return;
+    licensesTableBody.innerHTML = '';
+
+    if (filtered.length === 0) {
+        if (licensesEmptyState) licensesEmptyState.style.display = 'block';
+        return;
+    }
+    if (licensesEmptyState) licensesEmptyState.style.display = 'none';
+
+    filtered.forEach(l => {
+        const tr = document.createElement('tr');
+        const isRevoked = l.status === 'REVOKED';
+        const isExp = l.expiresAt && new Date(l.expiresAt).getTime() < now;
+        const isBound = !!(l.hardwareId && l.hardwareId.trim() !== '');
+
+        // Status Badge
+        let statusBadge = '';
+        if (isRevoked) {
+            statusBadge = '<span class="badge badge-expired">⛔ Revoked</span>';
+        } else if (isExp) {
+            statusBadge = '<span class="badge badge-expired">🔴 Expired</span>';
+        } else if (isBound) {
+            statusBadge = '<span class="badge badge-active">🟢 Active (Locked)</span>';
+        } else {
+            statusBadge = '<span class="badge badge-suspended">🟡 Unused (1-Time)</span>';
+        }
+
+        // Expiry Info
+        let expiryDisplay = '';
+        if (isRevoked) {
+            expiryDisplay = '<span style="color: #ef4444; font-size: 12px;">Revoked by Admin</span>';
+        } else if (l.expiresAt) {
+            const expInfo = formatExpiryDate(l.expiresAt);
+            expiryDisplay = `<div style="font-size: 12.5px; font-weight: 500;">${expInfo.text}</div>`;
+        } else {
+            expiryDisplay = `<span style="font-size: 12px; color: var(--text-dim);">Starts on 1st PC (+${l.durationDays || 30}d)</span>`;
+        }
+
+        // Hardware Lock Cell
+        let deviceCell = '';
+        if (isBound) {
+            const shortHwid = l.hardwareId.length > 16 ? l.hardwareId.substring(0, 16) + '...' : l.hardwareId;
+            deviceCell = `
+                <div class="device-lock-cell">
+                    <span class="badge badge-device-locked">🔒 Bound</span>
+                    <div class="device-info-tag">
+                        <div style="font-weight: 500; color: #f1f5f9;">${l.machineName || 'Host PC'}</div>
+                        <span class="device-id-mono" title="${l.hardwareId}">${shortHwid}</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm unlock-hwid-btn" data-key="${l.key}" title="Reset device lock to allow re-activation on another PC" style="color: #fca5a5; border-color: rgba(239, 68, 68, 0.3);">
+                        Unlock HWID
+                    </button>
+                </div>
+            `;
+        } else {
+            deviceCell = '<span class="badge badge-device-unbound">🔓 Unbound (Waiting for PC)</span>';
+        }
+
+        // 5-User Training Website Restriction Cell
+        const regUsers = l.registeredUsers || [];
+        const regCount = regUsers.length;
+        let studentUsersCell = '';
+        if (regCount === 0) {
+            studentUsersCell = '<span style="font-size: 12px; color: var(--text-dim);">0/5 registered</span>';
+        } else {
+            const isLimit = regCount >= 5;
+            const chips = regUsers.map(id => `<code class="student-id-chip ${isLimit ? 'limit-reached' : ''}">${id}</code>`).join(' ');
+            studentUsersCell = `
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                        <span style="font-size: 11px; font-weight: 600; color: ${isLimit ? '#ef4444' : '#34d399'};">
+                            ${regCount}/5 Users ${isLimit ? '(Limit Reached)' : ''}
+                        </span>
+                        <button class="btn btn-secondary btn-sm manage-students-btn" data-key="${l.key}" title="View & Manage 5 student IDs" style="font-size: 10px; padding: 2px 5px;">
+                            Manage
+                        </button>
+                    </div>
+                    <div class="student-id-tags">${chips}</div>
+                </div>
+            `;
+        }
+
+        tr.innerHTML = `
+            <td>
+                <div class="license-key-pill">
+                    <span class="key-text mono">${l.key}</span>
+                    <button class="copy-key-btn" data-key="${l.key}" title="Copy Windows product key to clipboard">
+                        📋
+                    </button>
+                </div>
+                ${l.notes ? `<div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">📝 ${l.notes}</div>` : ''}
+            </td>
+            <td>
+                <span class="duration-badge">${l.durationDays || 30} Days</span>
+            </td>
+            <td>${statusBadge}</td>
+            <td>${deviceCell}</td>
+            <td>${expiryDisplay}</td>
+            <td>${studentUsersCell}</td>
+            <td style="text-align: right;">
+                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                    <button class="btn btn-secondary btn-sm extend-lic-btn" data-key="${l.key}" title="Extend Expiry (+30d, +60d)">
+                        ⏳ Extend
+                    </button>
+                    <button class="btn btn-secondary btn-sm toggle-revoke-btn" data-key="${l.key}" data-revoked="${isRevoked}" title="${isRevoked ? 'Reactivate Key' : 'Revoke Key'}">
+                        ${isRevoked ? '✅ Enable' : '🚫 Revoke'}
+                    </button>
+                    <button class="btn btn-secondary btn-sm delete-lic-btn" data-key="${l.key}" title="Delete Key" style="color: #ef4444;">
+                        🗑️
+                    </button>
+                </div>
+            </td>
+        `;
+
+        licensesTableBody.appendChild(tr);
+    });
+
+    // Attach row events
+    licensesTableBody.querySelectorAll('.copy-key-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const key = btn.getAttribute('data-key');
+            if (key) {
+                navigator.clipboard.writeText(key).then(() => {
+                    showToast(`Product Key copied: ${key}`);
+                }).catch(() => {
+                    showToast('Failed to copy key', 'error');
+                });
+            }
+        });
+    });
+
+    licensesTableBody.querySelectorAll('.unlock-hwid-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const key = btn.getAttribute('data-key');
+            if (!key) return;
+            if (!confirm(`Are you sure you want to reset Hardware Lock for key:\n${key}?\n\nThis will allow the student to activate SafeExamBrowser on a new computer.`)) {
+                return;
+            }
+            try {
+                await resetLicenseKeyDevice(key);
+                showToast(`Hardware Lock reset for ${key}. Ready for new PC.`);
+            } catch(err) {
+                showToast(err.message, 'error');
+            }
+        });
+    });
+
+    licensesTableBody.querySelectorAll('.extend-lic-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const key = btn.getAttribute('data-key');
+            openExtendLicenseModal(key);
+        });
+    });
+
+    licensesTableBody.querySelectorAll('.toggle-revoke-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const key = btn.getAttribute('data-key');
+            const isRev = btn.getAttribute('data-revoked') === 'true';
+            try {
+                await toggleLicenseKeyRevoke(key, !isRev);
+                showToast(`Key ${key} ${!isRev ? 'revoked' : 're-activated'}.`);
+            } catch(err) {
+                showToast(err.message, 'error');
+            }
+        });
+    });
+
+    licensesTableBody.querySelectorAll('.delete-lic-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const key = btn.getAttribute('data-key');
+            if (!key) return;
+            if (!confirm(`Permanently delete license key:\n${key}?`)) return;
+            try {
+                await deleteLicenseKey(key);
+                showToast(`Key ${key} deleted.`);
+            } catch(err) {
+                showToast(err.message, 'error');
+            }
+        });
+    });
+
+    licensesTableBody.querySelectorAll('.manage-students-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const key = btn.getAttribute('data-key');
+            openManageStudentsModal(key);
+        });
+    });
+}
+
+function openExtendLicenseModal(key) {
+    appState.targetExtendLicenseKey = key;
+    const lic = (appState.licenses || []).find(l => l.key === key);
+    if (!lic) return;
+
+    if (extendLicenseKeyDisplay) extendLicenseKeyDisplay.innerText = key;
+    if (extendLicenseCurrentStatus) {
+        if (lic.expiresAt) {
+            extendLicenseCurrentStatus.innerText = `Current Expiry: ${formatExpiryDate(lic.expiresAt).text}`;
+        } else {
+            extendLicenseCurrentStatus.innerText = `Current Duration: ${lic.durationDays || 30} Days (Unused)`;
+        }
+    }
+
+    extendLicenseModal?.classList.add('open');
+}
+
+function openManageStudentsModal(key) {
+    appState.targetManageStudentsKey = key;
+    const lic = (appState.licenses || []).find(l => l.key === key);
+    if (!lic) return;
+
+    if (manageModalDeviceName) manageModalDeviceName.innerText = lic.machineName || 'Host PC';
+    if (manageModalHwid) manageModalHwid.innerText = lic.hardwareId || 'Unbound';
+
+    const users = lic.registeredUsers || [];
+    if (manageModalUserCountBadge) {
+        manageModalUserCountBadge.innerText = `${users.length} / 5 Slots Used`;
+        manageModalUserCountBadge.className = `badge ${users.length >= 5 ? 'badge-expired' : 'badge-active'}`;
+    }
+
+    if (manageModalUserList) {
+        if (users.length === 0) {
+            manageModalUserList.innerHTML = '<span style="font-size: 12px; color: var(--text-dim);">No students have logged in on this PC yet.</span>';
+        } else {
+            manageModalUserList.innerHTML = users.map(id => `
+                <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 13px;">🎓</span>
+                    <span class="mono" style="font-weight: 600; color: #38bdf8;">${id}</span>
+                </div>
+            `).join('');
+        }
+    }
+
+    manageStudentsModal?.classList.add('open');
 }
 
 // ── RENDER USERS TABLE & STATS ──
@@ -992,10 +1376,216 @@ adminLogoutBtn?.addEventListener('click', () => {
     loginAdminId?.focus();
 });
 
+// ── LICENSE KEY GENERATOR & MANAGEMENT EVENT HANDLERS ──
+
+// Duration presets in Generator
+durationPresetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        durationPresetBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        appState.selectedDurationDays = parseInt(btn.getAttribute('data-days'), 10) || 30;
+        if (inputCustomDays) inputCustomDays.value = '';
+        updateLiveKeyPreview();
+    });
+});
+
+inputCustomDays?.addEventListener('input', () => {
+    const val = parseInt(inputCustomDays.value, 10);
+    if (val && val > 0) {
+        durationPresetBtns.forEach(b => b.classList.remove('active'));
+        appState.selectedDurationDays = val;
+    } else {
+        appState.selectedDurationDays = 30;
+    }
+    updateLiveKeyPreview();
+});
+
+function updateLiveKeyPreview() {
+    if (!liveKeyPreview) return;
+    const sample = generateWindowsLicenseKey();
+    const codeEl = liveKeyPreview.querySelector('.key-preview-code');
+    if (codeEl) codeEl.innerText = sample;
+}
+
+// Generate License Key(s) Submit
+licenseGeneratorForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const duration = appState.selectedDurationDays || 30;
+    const qty = parseInt(inputKeyQuantity?.value, 10) || 1;
+    const notes = inputKeyNotes?.value || '';
+
+    if (btnGenerateLicense) {
+        btnGenerateLicense.disabled = true;
+        btnGenerateLicense.innerText = 'Generating Keys...';
+    }
+
+    try {
+        const res = await createLicenseKeys({ durationDays: duration, notes: notes, count: qty });
+        showToast(`Successfully created ${res.keys.length} product key(s)!`);
+
+        if (generatedKeysCount) generatedKeysCount.innerText = res.keys.length;
+        if (generatedKeysDuration) generatedKeysDuration.innerText = `${duration} Days`;
+        if (generatedKeysTextarea) {
+            generatedKeysTextarea.value = res.keys.map(k => k.key).join('\n');
+        }
+
+        generatedKeysModal?.classList.add('open');
+        if (inputKeyNotes) inputKeyNotes.value = '';
+        updateLiveKeyPreview();
+    } catch(err) {
+        showToast(err.message, 'error');
+    } finally {
+        if (btnGenerateLicense) {
+            btnGenerateLicense.disabled = false;
+            btnGenerateLicense.innerText = '🎲 Generate Activation Key(s)';
+        }
+    }
+});
+
+// Generated Keys Modal Buttons
+copyAllGeneratedKeysBtn?.addEventListener('click', () => {
+    if (generatedKeysTextarea) {
+        navigator.clipboard.writeText(generatedKeysTextarea.value).then(() => {
+            showToast('All product keys copied to clipboard!');
+        }).catch(() => {
+            showToast('Failed to copy keys', 'error');
+        });
+    }
+});
+
+downloadGeneratedKeysBtn?.addEventListener('click', () => {
+    if (!generatedKeysTextarea || !generatedKeysTextarea.value) return;
+    const blob = new Blob([generatedKeysTextarea.value], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SEB_Windows_License_Keys_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Keys downloaded as .txt');
+});
+
+function closeGeneratedKeysModal() {
+    generatedKeysModal?.classList.remove('open');
+}
+closeGeneratedKeysModalBtn?.addEventListener('click', closeGeneratedKeysModal);
+closeGeneratedKeysFooterBtn?.addEventListener('click', closeGeneratedKeysModal);
+
+// Search & Filter Licenses
+searchLicensesInput?.addEventListener('input', (e) => {
+    appState.licenseSearchQuery = e.target.value;
+    renderLicenses();
+});
+
+licFilterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+        licFilterPills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        appState.licenseFilter = pill.getAttribute('data-lic-filter');
+        renderLicenses();
+    });
+});
+
+refreshLicensesBtn?.addEventListener('click', () => {
+    refreshLicensesBtn.disabled = true;
+    refreshLicensesBtn.innerText = '🔄 Syncing...';
+    testCloudConnection().then(() => {
+        refreshLicensesBtn.disabled = false;
+        refreshLicensesBtn.innerText = '🔄 Sync';
+        showToast('License keys synchronized!');
+        renderLicenses();
+    });
+});
+
+// Export All Keys Button
+exportLicensesBtn?.addEventListener('click', () => {
+    const licenses = appState.licenses || [];
+    if (licenses.length === 0) {
+        showToast('No license keys to export.', 'warning');
+        return;
+    }
+
+    let content = `SafeExamBrowser Product License Keys Export - ${new Date().toLocaleString()}\n`;
+    content += `=========================================================================\n\n`;
+
+    licenses.forEach((l, idx) => {
+        content += `${idx + 1}. Key: ${l.key}\n`;
+        content += `   Duration: ${l.durationDays || 30} Days\n`;
+        content += `   Status: ${l.status || 'UNUSED'}\n`;
+        content += `   Hardware Lock: ${l.hardwareId || 'Unbound'}\n`;
+        content += `   Machine Name: ${l.machineName || 'None'}\n`;
+        content += `   Expiry: ${l.expiresAt || 'Pending 1st activation'}\n`;
+        content += `   5-User Training IDs: ${(l.registeredUsers || []).join(', ') || 'None'}\n`;
+        if (l.notes) content += `   Notes: ${l.notes}\n`;
+        content += `\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SEB_All_License_Keys_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${licenses.length} keys!`);
+});
+
+// Extend License Modal Handlers
+function closeExtendLicenseModal() {
+    extendLicenseModal?.classList.remove('open');
+    appState.targetExtendLicenseKey = null;
+}
+closeExtendLicenseModalBtn?.addEventListener('click', closeExtendLicenseModal);
+cancelExtendLicenseModalBtn?.addEventListener('click', closeExtendLicenseModal);
+
+extendLicQuickBtns.forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const key = appState.targetExtendLicenseKey;
+        if (!key) return;
+        const days = parseInt(btn.getAttribute('data-days'), 10) || 30;
+
+        btn.disabled = true;
+        try {
+            await extendLicenseKey(key, days);
+            showToast(`Extended ${key} by +${days} days!`);
+            closeExtendLicenseModal();
+        } catch(err) {
+            showToast(err.message, 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+});
+
+// Manage 5 Students Modal Handlers
+function closeManageStudentsModal() {
+    manageStudentsModal?.classList.remove('open');
+    appState.targetManageStudentsKey = null;
+}
+closeManageStudentsModalBtn?.addEventListener('click', closeManageStudentsModal);
+closeManageStudentsFooterBtn?.addEventListener('click', closeManageStudentsModal);
+
+btnClearRegisteredUsersBtn?.addEventListener('click', async () => {
+    const key = appState.targetManageStudentsKey;
+    if (!key) return;
+    if (!confirm(`Are you sure you want to clear all registered student IDs for this machine?\n\nThis will reset the 5-user limit counter to 0/5.`)) {
+        return;
+    }
+
+    try {
+        await clearKeyRegisteredUsers(key);
+        showToast('Registered student IDs cleared successfully.');
+        closeManageStudentsModal();
+    } catch(err) {
+        showToast(err.message, 'error');
+    }
+});
+
 // ── INITIALIZE PORTAL ──
 subscribeToState((state) => {
     appState.admin = state.admin;
     appState.users = state.users;
+    appState.licenses = state.licenses || [];
     appState.config = state.config;
     appState.connection = state.connection;
 
@@ -1006,6 +1596,7 @@ subscribeToState((state) => {
     }
 
     updateConnectionUI(state.connection);
+    renderLicenses();
     renderUsers();
 });
 

@@ -94,11 +94,14 @@
           </div>
 
           <nav class="nav-center">
-            <button id="tabUsersBtn" class="nav-tab-btn active" data-tab="users">
-              👥 Users & Licenses
+            <button id="tabLicensesBtn" class="nav-tab-btn active" data-tab="licenses">
+              🔑 SEB Product Keys
+            </button>
+            <button id="tabUsersBtn" class="nav-tab-btn" data-tab="users">
+              👥 Student Accounts
             </button>
             <button id="tabSettingsBtn" class="nav-tab-btn" data-tab="settings">
-              🔑 Dedicated Gemini Key
+              🤖 Dedicated Gemini Key
             </button>
             <button id="tabFirebaseBtn" class="nav-tab-btn" data-tab="firebase">
               🔥 Firebase Setup & Rules
@@ -131,8 +134,166 @@
 
       <!-- Main Content Container -->
       <main class="main-content">
-        <!-- ── TAB 1: USERS & LICENSES ── -->
-        <section id="viewUsers" class="tab-view active">
+        <!-- ── TAB 1: SEB PRODUCT ACTIVATION KEYS (WINDOWS STYLE) ── -->
+        <section id="viewLicenses" class="tab-view active">
+          <!-- KPI Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card" style="--stat-accent: #3b82f6; --stat-icon-bg: rgba(59, 130, 246, 0.15);">
+              <div class="stat-content">
+                <span class="stat-label">Total Product Keys</span>
+                <span id="statTotalLicenses" class="stat-value">0</span>
+                <span class="stat-subtext">Generated Windows-Style Keys</span>
+              </div>
+              <div class="stat-icon">🔑</div>
+            </div>
+
+            <div class="stat-card" style="--stat-accent: #10b981; --stat-icon-bg: rgba(16, 185, 129, 0.15);">
+              <div class="stat-content">
+                <span class="stat-label">Active & Bound PCs</span>
+                <span id="statActiveLicenses" class="stat-value">0</span>
+                <span class="stat-subtext">Hardware-Locked to Device</span>
+              </div>
+              <div class="stat-icon">🔒</div>
+            </div>
+
+            <div class="stat-card" style="--stat-accent: #f59e0b; --stat-icon-bg: rgba(245, 158, 11, 0.15);">
+              <div class="stat-content">
+                <span class="stat-label">Unused Keys</span>
+                <span id="statUnusedLicenses" class="stat-value">0</span>
+                <span class="stat-subtext">Ready for 1-time PC activation</span>
+              </div>
+              <div class="stat-icon">⚡</div>
+            </div>
+
+            <div class="stat-card" style="--stat-accent: #ef4444; --stat-icon-bg: rgba(239, 68, 68, 0.15);">
+              <div class="stat-content">
+                <span class="stat-label">Expired / Revoked</span>
+                <span id="statExpiredLicenses" class="stat-value">0</span>
+                <span class="stat-subtext">SEB blocked on device</span>
+              </div>
+              <div class="stat-icon">⛔</div>
+            </div>
+          </div>
+
+          <!-- Windows Product Key Generator Card -->
+          <div class="key-generator-card">
+            <div class="generator-header">
+              <div>
+                <h3 class="generator-title">⚡ Generate Windows-Style Product Activation Key</h3>
+                <p class="generator-desc">
+                  Generates unique, one-time valid activation keys (e.g. <code>W8N2P-9T4KD-7X1MF-3Q8ZJ-5A6EC</code>).
+                  Once activated in SafeExamBrowser on a PC, the key permanently binds to that system's Hardware ID (non-transferable) and expires after the configured duration.
+                </p>
+              </div>
+              <div class="key-preview-pill" id="liveKeyPreview">
+                <span style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Sample Format</span>
+                <span class="key-preview-code mono">XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</span>
+              </div>
+            </div>
+
+            <form id="licenseGeneratorForm" class="generator-form">
+              <div class="generator-grid">
+                <div class="form-group">
+                  <label class="form-label">
+                    <span>SEB Expiry Duration <span style="color: #ef4444;">*</span></span>
+                  </label>
+                  <div class="duration-presets-row">
+                    <button type="button" class="duration-preset-btn active" data-days="30">30 Days (Standard)</button>
+                    <button type="button" class="duration-preset-btn" data-days="60">60 Days (Bi-Monthly)</button>
+                    <button type="button" class="duration-preset-btn" data-days="90">90 Days (Quarterly)</button>
+                    <button type="button" class="duration-preset-btn" data-days="180">180 Days (Semester)</button>
+                    <button type="button" class="duration-preset-btn" data-days="365">1 Year</button>
+                  </div>
+                  <div class="custom-days-row" style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 12px; color: var(--text-dim);">Or custom days:</span>
+                    <input type="number" id="inputCustomDays" class="form-input" min="1" max="1000" placeholder="e.g. 45" style="max-width: 120px; padding: 6px 10px;">
+                    <span style="font-size: 12px; color: var(--text-dim);">days</span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="inputKeyQuantity">Batch Quantity</label>
+                  <select id="inputKeyQuantity" class="form-input" style="cursor: pointer;">
+                    <option value="1">1 Key (Single Student)</option>
+                    <option value="5">5 Keys (Small Group)</option>
+                    <option value="10">10 Keys (Class Section)</option>
+                    <option value="25">25 Keys (Exam Cohort)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="inputKeyNotes">Batch Label / Cohort Notes</label>
+                  <input type="text" id="inputKeyNotes" class="form-input" placeholder="e.g. Saveetha CSE Lab 3, 2026 Batch">
+                </div>
+              </div>
+
+              <div class="generator-actions">
+                <button type="submit" id="btnGenerateLicense" class="btn btn-primary" style="padding: 10px 22px; font-weight: 600; font-size: 13.5px;">
+                  🎲 Generate Activation Key(s)
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Action & Search Toolbar -->
+          <div class="action-toolbar" style="margin-top: 24px;">
+            <div class="toolbar-left">
+              <div class="search-input-wrap">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="searchLicensesInput" class="search-input" placeholder="Search by License Key, Hardware ID, PC Name, or 8-digit Student ID...">
+              </div>
+
+              <div class="filter-pills">
+                <button class="filter-pill active" data-lic-filter="all">All (<span id="licCountAll">0</span>)</button>
+                <button class="filter-pill" data-lic-filter="active">🟢 Active / Bound (<span id="licCountActive">0</span>)</button>
+                <button class="filter-pill" data-lic-filter="unused">🟡 Unused (<span id="licCountUnused">0</span>)</button>
+                <button class="filter-pill" data-lic-filter="expired">🔴 Expired (<span id="licCountExpired">0</span>)</button>
+                <button class="filter-pill" data-lic-filter="revoked">⛔ Revoked (<span id="licCountRevoked">0</span>)</button>
+              </div>
+            </div>
+
+            <div class="toolbar-right">
+              <button id="refreshLicensesBtn" class="btn btn-secondary">
+                🔄 Sync
+              </button>
+              <button id="exportLicensesBtn" class="btn btn-secondary" title="Export keys to text / CSV">
+                📥 Export All Keys
+              </button>
+            </div>
+          </div>
+
+          <!-- License Keys Table -->
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width: 26%;">Windows Product Key</th>
+                  <th style="width: 10%;">Duration</th>
+                  <th style="width: 11%;">Status</th>
+                  <th style="width: 17%;">Hardware Binding (HWID)</th>
+                  <th style="width: 14%;">Expiry Date</th>
+                  <th style="width: 12%;">5-User Training Website Lock</th>
+                  <th style="width: 10%; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="licensesTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+
+            <div id="licensesEmptyState" class="empty-state" style="display: none;">
+              <div class="empty-state-icon">🔑</div>
+              <h3>No License Keys Found</h3>
+              <p>Generate your first Windows-style activation key above to get started.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── TAB 2: STUDENT ACCOUNTS ── -->
+        <section id="viewUsers" class="tab-view" style="display: none;">
           <!-- KPI Stats Grid -->
           <div class="stats-grid">
             <div class="stat-card" style="--stat-accent: #4f46e5; --stat-icon-bg: rgba(79, 70, 229, 0.15);">
@@ -319,23 +480,27 @@
 service cloud.firestore {
   match /databases/{database}/documents {
     // 1. ADMINS: List enumeration is BLOCKED.
-    // Prevents public scraping of admin accounts and credentials.
     match /admins/{adminId} {
       allow list: if false;
       allow get: if true;
       allow create, update: if true;
       allow delete: if false;
     }
-    // 2. STUDENT LICENSES: Restricted to student lookup & portal operations.
+    // 2. SEB PRODUCT ACTIVATION KEYS
+    match /license_keys/{key} {
+      allow get, list: if true;
+      allow create, update, delete: if true;
+    }
+    // 3. STUDENT ACCOUNTS
     match /users/{userId} {
       allow get, list: if true;
       allow create, update, delete: if true;
     }
-    // 3. SYSTEM & GLOBAL SETTINGS
+    // 4. SYSTEM & GLOBAL SETTINGS
     match /system_settings/{settingId} {
       allow read, write: if true;
     }
-    // 4. ACTIVITY AUDIT TRAIL: Tamper-proof append-only logging.
+    // 5. ACTIVITY AUDIT TRAIL
     match /activity_logs/{logId} {
       allow read, create: if true;
       allow update, delete: if false;
@@ -361,6 +526,10 @@ service cloud.firestore {
         ".read": true,
         ".write": true
       }
+    },
+    "license_keys": {
+      ".read": true,
+      ".write": true
     },
     "users": {
       ".read": true,
@@ -557,6 +726,120 @@ service cloud.firestore {
           </div>
           <div class="modal-footer">
             <button type="button" id="closeShareModalFooterBtn" class="btn btn-secondary">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MODAL: GENERATED PRODUCT KEYS (BATCH/SINGLE) ── -->
+      <div id="generatedKeysModal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 580px;">
+          <div class="modal-header">
+            <h3 class="modal-title">🎉 Product Activation Keys Created</h3>
+            <button id="closeGeneratedKeysModalBtn" class="modal-close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+              Generated <b id="generatedKeysCount" style="color: #38bdf8;">1</b> Windows-format activation key(s) with <b id="generatedKeysDuration" style="color: #10b981;">30 Days</b> validity:
+            </p>
+
+            <textarea id="generatedKeysTextarea" class="form-input mono" rows="8" readonly style="
+              width: 100%;
+              font-size: 13px;
+              line-height: 1.6;
+              background: #090d16;
+              color: #38bdf8;
+              border: 1px solid rgba(56, 189, 248, 0.3);
+              padding: 12px;
+              border-radius: var(--radius-md);
+              resize: none;
+            "></textarea>
+
+            <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 8px;">
+              ℹ️ Each key can only be activated on <b>one computer</b>. Upon first activation in SEB, it permanently locks to that PC's Hardware ID.
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+              <button type="button" id="copyAllGeneratedKeysBtn" class="btn btn-primary" style="flex: 1;">
+                📋 Copy All Keys
+              </button>
+              <button type="button" id="downloadGeneratedKeysBtn" class="btn btn-secondary" style="flex: 1;">
+                📥 Download .TXT
+              </button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="closeGeneratedKeysFooterBtn" class="btn btn-secondary">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MODAL: EXTEND LICENSE KEY EXPIRY ── -->
+      <div id="extendLicenseModal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 460px;">
+          <div class="modal-header">
+            <h3 class="modal-title">⏳ Extend Product Key Expiry</h3>
+            <button id="closeExtendLicenseModalBtn" class="modal-close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size: 13px; margin-bottom: 6px;">
+              Target Key: <code id="extendLicenseKeyDisplay" class="mono" style="color: #38bdf8; font-weight: 600;">XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</code>
+            </p>
+            <p id="extendLicenseCurrentStatus" style="font-size: 12px; color: var(--text-dim); margin-bottom: 16px;">
+              Current Status: Active
+            </p>
+
+            <div style="font-size: 12.5px; font-weight: 600; color: #f1f5f9; margin-bottom: 8px;">Quick Extension:</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <button type="button" class="btn btn-secondary extend-lic-quick-btn" data-days="30">+ 30 Days (1 Month)</button>
+              <button type="button" class="btn btn-secondary extend-lic-quick-btn" data-days="60">+ 60 Days (2 Months)</button>
+              <button type="button" class="btn btn-secondary extend-lic-quick-btn" data-days="90">+ 90 Days (Quarter)</button>
+              <button type="button" class="btn btn-secondary extend-lic-quick-btn" data-days="180">+ 180 Days (Semester)</button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="cancelExtendLicenseModalBtn" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MODAL: MANAGE 5-USER TRAINING RESTRICTION ── -->
+      <div id="manageStudentsModal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 520px;">
+          <div class="modal-header">
+            <h3 class="modal-title">👥 5-User Restriction on Training Website</h3>
+            <button id="closeManageStudentsModalBtn" class="modal-close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+              Device: <b id="manageModalDeviceName" style="color: #f1f5f9;">DESKTOP-PC</b> 
+              (<code id="manageModalHwid" class="mono" style="color: #38bdf8; font-size: 11px;">HWID-XXXX</code>)
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 13px; font-weight: 600;">Registered 8-Digit Student User IDs:</span>
+                <span id="manageModalUserCountBadge" class="badge badge-active">0 / 5 Used</span>
+              </div>
+              <p style="font-size: 11.5px; color: var(--text-dim); margin-bottom: 10px;">
+                Only these 5 unique user IDs are permitted to log in at <code>https://training2.saveetha.in/login/index.php</code> through this PC's SEB instance:
+              </p>
+              <div id="manageModalUserList" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; align-items: center;">
+                <!-- Dynamically populated chips -->
+              </div>
+            </div>
+
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-md); padding: 12px;">
+              <div style="font-size: 12px; font-weight: 600; color: #fca5a5; margin-bottom: 4px;">Admin Reset:</div>
+              <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px;">
+                Clearing these IDs resets the 5-user lock on this computer, allowing up to 5 new student IDs to be registered upon subsequent logins.
+              </p>
+              <button type="button" id="btnClearRegisteredUsersBtn" class="btn btn-secondary btn-sm" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+                🗑️ Clear All 5 Registered IDs
+              </button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="closeManageStudentsFooterBtn" class="btn btn-secondary">Close</button>
           </div>
         </div>
       </div>
