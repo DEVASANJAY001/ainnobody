@@ -94,19 +94,19 @@
           </div>
 
           <nav class="nav-center">
-            <button id="tabLicensesBtn" class="nav-tab-btn active" data-tab="licenses">
+            <button type="button" id="tabLicensesBtn" class="nav-tab-btn active" data-tab="licenses">
               🔑 SEB Product Keys
             </button>
-            <button id="tabUsersBtn" class="nav-tab-btn" data-tab="users">
+            <button type="button" id="tabUsersBtn" class="nav-tab-btn" data-tab="users">
               👥 Student Accounts
             </button>
-            <button id="tabSettingsBtn" class="nav-tab-btn" data-tab="settings">
+            <button type="button" id="tabSettingsBtn" class="nav-tab-btn" data-tab="settings">
               🤖 Dedicated Gemini Key
             </button>
-            <button id="tabFirebaseBtn" class="nav-tab-btn" data-tab="firebase">
+            <button type="button" id="tabFirebaseBtn" class="nav-tab-btn" data-tab="firebase">
               🔥 Firebase Setup & Rules
             </button>
-            <button id="tabActivityBtn" class="nav-tab-btn" data-tab="activity">
+            <button type="button" id="tabActivityBtn" class="nav-tab-btn" data-tab="activity">
               📋 Activity Logs
             </button>
           </nav>
@@ -124,7 +124,7 @@
                 <span id="navAdminName" class="admin-name">Admin</span>
                 <span id="navAdminId" class="admin-handle">@admin</span>
               </div>
-              <button id="adminLogoutBtn" class="btn-logout" title="Sign out of this dashboard">
+              <button type="button" id="adminLogoutBtn" class="btn-logout" title="Sign out of this dashboard">
                 🚪 Logout
               </button>
             </div>
@@ -247,19 +247,19 @@
               </div>
 
               <div class="filter-pills">
-                <button class="filter-pill active" data-lic-filter="all">All (<span id="licCountAll">0</span>)</button>
-                <button class="filter-pill" data-lic-filter="active">🟢 Active / Bound (<span id="licCountActive">0</span>)</button>
-                <button class="filter-pill" data-lic-filter="unused">🟡 Unused (<span id="licCountUnused">0</span>)</button>
-                <button class="filter-pill" data-lic-filter="expired">🔴 Expired (<span id="licCountExpired">0</span>)</button>
-                <button class="filter-pill" data-lic-filter="revoked">⛔ Revoked (<span id="licCountRevoked">0</span>)</button>
+                <button type="button" class="filter-pill active" data-lic-filter="all">All (<span id="licCountAll">0</span>)</button>
+                <button type="button" class="filter-pill" data-lic-filter="active">🟢 Active / Bound (<span id="licCountActive">0</span>)</button>
+                <button type="button" class="filter-pill" data-lic-filter="unused">🟡 Unused (<span id="licCountUnused">0</span>)</button>
+                <button type="button" class="filter-pill" data-lic-filter="expired">🔴 Expired (<span id="licCountExpired">0</span>)</button>
+                <button type="button" class="filter-pill" data-lic-filter="revoked">⛔ Revoked (<span id="licCountRevoked">0</span>)</button>
               </div>
             </div>
 
             <div class="toolbar-right">
-              <button id="refreshLicensesBtn" class="btn btn-secondary">
+              <button type="button" id="refreshLicensesBtn" class="btn btn-secondary">
                 🔄 Sync
               </button>
-              <button id="exportLicensesBtn" class="btn btn-secondary" title="Export keys to text / CSV">
+              <button type="button" id="exportLicensesBtn" class="btn btn-secondary" title="Export keys to text / CSV">
                 📥 Export All Keys
               </button>
             </div>
@@ -345,20 +345,20 @@
               </div>
 
               <div class="filter-pills">
-                <button class="filter-pill active" data-filter="all">All (<span id="countAll">0</span>)</button>
-                <button class="filter-pill" data-filter="active">🟢 Active (<span id="countActive">0</span>)</button>
-                <button class="filter-pill" data-filter="expired">🔴 Expired (<span id="countExpired">0</span>)</button>
-                <button class="filter-pill" data-filter="suspended">🟡 Suspended (<span id="countSuspended">0</span>)</button>
-                <button class="filter-pill" data-filter="locked">🔒 Device Bound (<span id="countLocked">0</span>)</button>
-                <button class="filter-pill" data-filter="unbound">🔓 Unbound (<span id="countUnbound">0</span>)</button>
+                <button type="button" class="filter-pill active" data-filter="all">All (<span id="countAll">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="active">🟢 Active (<span id="countActive">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="expired">🔴 Expired (<span id="countExpired">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="suspended">🟡 Suspended (<span id="countSuspended">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="locked">🔒 Device Bound (<span id="countLocked">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="unbound">🔓 Unbound (<span id="countUnbound">0</span>)</button>
               </div>
             </div>
 
             <div class="toolbar-right">
-              <button id="refreshUsersBtn" class="btn btn-secondary">
+              <button type="button" id="refreshUsersBtn" class="btn btn-secondary">
                 🔄 Sync
               </button>
-              <button id="openNewUserModalBtn" class="btn btn-primary">
+              <button type="button" id="openNewUserModalBtn" class="btn btn-primary">
                 ➕ New User License
               </button>
             </div>
@@ -386,7 +386,7 @@
               <div class="empty-state-icon">👤</div>
               <h3>No Users Found</h3>
               <p>No user accounts match the current filter. Create a new user license to get started!</p>
-              <button id="emptyCreateBtn" class="btn btn-primary">➕ Create First User License</button>
+              <button type="button" id="emptyCreateBtn" class="btn btn-primary">➕ Create First User License</button>
             </div>
           </div>
         </section>
@@ -413,10 +413,10 @@
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 18px;">
-              <button id="saveGlobalConfigBtn" class="btn btn-primary">
+              <button type="button" id="saveGlobalConfigBtn" class="btn btn-primary">
                 💾 Save Dedicated API Key
               </button>
-              <button id="testGlobalApiKeyBtn" class="btn btn-secondary">
+              <button type="button" id="testGlobalApiKeyBtn" class="btn btn-secondary">
                 ⚡ Test API Key Live
               </button>
             </div>
@@ -461,7 +461,7 @@
                     Diagnostics running...
                   </div>
                 </div>
-                <button id="recheckCloudBtn" class="btn btn-secondary btn-sm">
+                <button type="button" id="recheckCloudBtn" class="btn btn-secondary btn-sm">
                   🔍 Test Cloud Read/Write
                 </button>
               </div>
@@ -475,7 +475,7 @@
             </p>
 
             <div class="code-snippet-box">
-              <button class="copy-snippet-btn" data-target="firestoreRulesCode">📋 Copy Rules</button>
+              <button type="button" class="copy-snippet-btn" data-target="firestoreRulesCode">📋 Copy Rules</button>
               <pre id="firestoreRulesCode">rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -517,7 +517,7 @@ service cloud.firestore {
             </p>
 
             <div class="code-snippet-box">
-              <button class="copy-snippet-btn" data-target="rtdbRulesCode">📋 Copy Rules</button>
+              <button type="button" class="copy-snippet-btn" data-target="rtdbRulesCode">📋 Copy Rules</button>
               <pre id="rtdbRulesCode">{
   "rules": {
     "admins": {
@@ -590,7 +590,7 @@ service cloud.firestore {
         <div class="modal-card">
           <div class="modal-header">
             <h3 id="modalUserTitle" class="modal-title">➕ Create User License</h3>
-            <button id="closeUserModalBtn" class="modal-close-btn">&times;</button>
+            <button type="button" id="closeUserModalBtn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
           </div>
           <form id="userForm">
             <div class="modal-body">
@@ -669,7 +669,7 @@ service cloud.firestore {
         <div class="modal-card" style="max-width: 440px;">
           <div class="modal-header">
             <h3 class="modal-title">⏳ Extend License Expiry</h3>
-            <button id="closeExtendModalBtn" class="modal-close-btn">&times;</button>
+            <button type="button" id="closeExtendModalBtn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
           </div>
           <div class="modal-body">
             <p style="font-size: 13px; margin-bottom: 14px;">
@@ -693,7 +693,7 @@ service cloud.firestore {
         <div class="modal-card" style="max-width: 540px;">
           <div class="modal-header">
             <h3 class="modal-title">📨 Share User Credentials</h3>
-            <button id="closeShareModalBtn" class="modal-close-btn">&times;</button>
+            <button type="button" id="closeShareModalBtn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
           </div>
           <div class="modal-body">
             <p style="font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px;">
@@ -735,7 +735,7 @@ service cloud.firestore {
         <div class="modal-card" style="max-width: 580px;">
           <div class="modal-header">
             <h3 class="modal-title">🎉 Product Activation Keys Created</h3>
-            <button id="closeGeneratedKeysModalBtn" class="modal-close-btn">&times;</button>
+            <button type="button" id="closeGeneratedKeysModalBtn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
           </div>
           <div class="modal-body">
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
@@ -778,7 +778,7 @@ service cloud.firestore {
         <div class="modal-card" style="max-width: 460px;">
           <div class="modal-header">
             <h3 class="modal-title">⏳ Extend Product Key Expiry</h3>
-            <button id="closeExtendLicenseModalBtn" class="modal-close-btn">&times;</button>
+            <button type="button" id="closeExtendLicenseModalBtn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
           </div>
           <div class="modal-body">
             <p style="font-size: 13px; margin-bottom: 6px;">
@@ -807,7 +807,7 @@ service cloud.firestore {
         <div class="modal-card" style="max-width: 520px;">
           <div class="modal-header">
             <h3 class="modal-title">👥 5-User Restriction on Training Website</h3>
-            <button id="closeManageStudentsModalBtn" class="modal-close-btn">&times;</button>
+            <button type="button" id="closeManageStudentsModalBtn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
           </div>
           <div class="modal-body">
             <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">

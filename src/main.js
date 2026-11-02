@@ -190,20 +190,77 @@ const navAdminId = document.getElementById('navAdminId');
 const adminLogoutBtn = document.getElementById('adminLogoutBtn');
 const settingsAdminHandle = document.getElementById('settingsAdminHandle');
 
-// ── TOAST HELPER ──
-function showToast(message, type = 'success') {
+// ── SONNER-STYLE INTERRUPTIBLE TOAST SYSTEM (Emil Kowalski Architecture) ──
+function showToast(message, type = 'success', duration = 3800) {
+    if (!toastContainer) return;
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
-    toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+
+    const icons = {
+        success: '🟢',
+        error: '🔴',
+        info: 'ℹ️',
+        warning: '🟡'
+    };
+    const icon = icons[type] || 'ℹ️';
+
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-icon">${icon}</span>
+            <span class="toast-message">${message}</span>
+        </div>
+        <button type="button" class="toast-close-btn" aria-label="Dismiss notification">&times;</button>
+    `;
+
     toastContainer.appendChild(toast);
 
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(10px)';
-        toast.style.transition = 'all 0.25s ease';
-        setTimeout(() => toast.remove(), 250);
-    }, 3500);
+    // Trigger interruptible CSS entrance on next frame
+    requestAnimationFrame(() => {
+        toast.classList.add('visible');
+    });
+
+    let dismissTimer = null;
+    let isLeaving = false;
+
+    function dismiss() {
+        if (isLeaving) return;
+        isLeaving = true;
+        clearTimeout(dismissTimer);
+        toast.classList.remove('visible');
+        toast.classList.add('leaving');
+        toast.addEventListener('transitionend', () => {
+            toast.remove();
+        }, { once: true });
+        // Fallback cleanup
+        setTimeout(() => toast.remove(), 260);
+    }
+
+    function startTimer() {
+        dismissTimer = setTimeout(dismiss, duration);
+    }
+
+    function pauseTimer() {
+        clearTimeout(dismissTimer);
+    }
+
+    startTimer();
+
+    // Hover to pause auto-dismiss
+    toast.addEventListener('mouseenter', pauseTimer);
+    toast.addEventListener('mouseleave', startTimer);
+
+    // Instant click to dismiss
+    toast.addEventListener('click', dismiss);
+    const closeBtn = toast.querySelector('.toast-close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dismiss();
+        });
+    }
 }
 
 // ── DATE FORMATTING HELPERS ──
@@ -1421,7 +1478,7 @@ licenseGeneratorForm?.addEventListener('submit', async (e) => {
 
     try {
         const res = await createLicenseKeys({ durationDays: duration, notes: notes, count: qty });
-        showToast(`Successfully created ${res.keys.length} product key(s)!`);
+        showToast(`Successfully created ${res.keys.length} product ${res.keys.length === 1 ? 'key' : 'keys'}!`);
 
         if (generatedKeysCount) generatedKeysCount.innerText = res.keys.length;
         if (generatedKeysDuration) generatedKeysDuration.innerText = `${duration} Days`;
@@ -1602,6 +1659,36 @@ subscribeToState((state) => {
 
 // Initial check for active session
 syncAdminAuthUI(getCurrentAdmin());
+
+
+// ── MODAL ACCESSIBILITY & BACKDROP / ESCAPE DISMISSAL (Emil Kowalski Pattern) ──
+function closeOpenModals() {
+    [userModal, extendModal, shareModal, generatedKeysModal, extendLicenseModal, manageStudentsModal].forEach(m => {
+        if (m && m.classList.contains('open')) {
+            m.classList.remove('open');
+        }
+    });
+    appState.editingUser = null;
+    appState.targetExtendUser = null;
+    appState.targetExtendLicenseKey = null;
+    appState.targetManageStudentsKey = null;
+}
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeOpenModals();
+    }
+});
+
+[userModal, extendModal, shareModal, generatedKeysModal, extendLicenseModal, manageStudentsModal].forEach(modal => {
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeOpenModals();
+            }
+        });
+    }
+});
 
 // Security Observer: Prevents DevTools DOM tampering from displaying dashboard without authentication
 const securityGuard = new MutationObserver(() => {

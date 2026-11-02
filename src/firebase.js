@@ -1,4 +1,4 @@
-// Admin Portal - Multi-Tenant Firebase Service Layer
+﻿// Admin Portal - Multi-Tenant Firebase Service Layer
 // Supports isolated Admin accounts (admins/{adminId}), scoped student users (users/{userId}),
 // single-device binding, and dedicated per-admin Gemini API keys.
 
@@ -415,53 +415,102 @@ export function stopRealtimeSync() {
 
 export async function syncLicensesFromRtdb() {
     try {
-        const res = await fetch(`${firebaseConfig.rtdbUrl}/license_keys.json`);
-        if (res.ok) {
-            const data = await res.json();
-            if (data && typeof data === "object") {
-                const list = [];
-                Object.keys(data).forEach(k => {
-                    if (data[k]) list.push({ key: k, id: k, ...data[k] });
-                });
-                licensesCache = list;
-                notifyState();
-                return;
-            }
-        }
-    } catch (e) { }
+        const [resKeys, resUsers] = await Promise.all([
+            fetch(`${firebaseConfig.rtdbUrl}/license_keys.json`).catch(() => null),
+            fetch(`${firebaseConfig.rtdbUrl}/users.json`).catch(() => null)
+        ]);
 
-    // Fallback: check /users.json for any keys starting with "KEY_"
-    try {
-        const res2 = await fetch(`${firebaseConfig.rtdbUrl}/users.json`);
-        if (res2.ok) {
-            const data2 = await res2.json();
-            if (data2 && typeof data2 === "object") {
-                const list = [];
-                const studentList = [];
-                Object.keys(data2).forEach(k => {
-                    const item = data2[k];
-                    if (!item) return;
-                    if (k.startsWith("KEY_")) {
-                        const cleanKey = k.replace(/^KEY_/, "");
-                        list.push({ key: cleanKey, id: cleanKey, ...item });
-                    } else if (k.startsWith("REG_")) {
-                        const cleanId = k.replace(/^REG_/, "");
-                        studentList.push({ id: cleanId, userId: cleanId, ...item });
-                    } else if (/^\d{8}$/.test(k)) {
-                        studentList.push({ id: k, userId: k, ...item });
-                    }
-                });
+        let keysData = null;
+        let usersData = null;
 
-                if (list.length > 0) {
-                    licensesCache = list;
-                }
-                if (studentList.length > 0 && usersCache.length === 0) {
-                    usersCache = studentList;
-                }
-                notifyState();
-            }
+        if (resKeys && resKeys.ok) {
+            keysData = await resKeys.json();
         }
-    } catch(e) { }
+        if (resUsers && resUsers.ok) {
+            usersData = await resUsers.json();
+        }
+
+        const licensesMap = new Map();
+
+        // 1. Load keys from /license_keys.json
+        if (keysData && typeof keysData === "object") {
+            Object.keys(keysData).forEach(k => {
+                if (keysData[k]) {
+                    const item = { key: k, id: k, ...keysData[k] };
+                    if (!Array.isArray(item.registeredUsers)) item.registeredUsers = [];
+                    licensesMap.set(k, item);
+                }
+            });
+        }
+
+        // 2. Load keys and registered users from /users.json
+        const studentList = [];
+        if (usersData && typeof usersData === "object") {
+            Object.keys(usersData).forEach(k => {
+                const item = usersData[k];
+                if (!item) return;
+
+                if (k.startsWith("KEY_")) {
+                    const cleanKey = k.replace(/^KEY_/, "");
+                    const existing = licensesMap.get(cleanKey) || { key: cleanKey, id: cleanKey };
+                    const mergedRegUsers = Array.isArray(item.registeredUsers) && item.registeredUsers.length > 0
+                        ? item.registeredUsers
+                        : (existing.registeredUsers || []);
+                    licensesMap.set(cleanKey, {
+                        ...existing,
+                        ...item,
+                        key: cleanKey,
+                        id: cleanKey,
+                        registeredUsers: mergedRegUsers,
+                        registeredCount: mergedRegUsers.length
+                    });
+                } else if (k.startsWith("REG_")) {
+                    const cleanId = k.replace(/^REG_/, "");
+                    studentList.push({ id: cleanId, userId: cleanId, ...item });
+                } else if (/^\d{8}$/.test(k)) {
+                    studentList.push({ id: k, userId: k, ...item });
+                }
+            });
+        }
+
+        // 3. For any student without adminId, match with their license's adminId
+        const activeAdminId = currentAdmin?.adminId || "";
+        studentList.forEach(s => {
+            if (!s.adminId) {
+                if (s.licenseKey && licensesMap.has(s.licenseKey)) {
+                    s.adminId = licensesMap.get(s.licenseKey).adminId || activeAdminId;
+                } else {
+                    s.adminId = activeAdminId;
+                }
+            }
+        });
+
+        // 4. Also collect any student IDs belonging to each license
+        licensesMap.forEach((lic, key) => {
+            const studentsForThisKey = studentList
+                .filter(s => s.licenseKey === key || (s.id && (lic.registeredUsers || []).includes(s.id)))
+                .map(s => s.userId || s.id);
+
+            const combined = Array.from(new Set([...(lic.registeredUsers || []), ...studentsForThisKey]));
+            lic.registeredUsers = combined;
+            lic.registeredCount = combined.length;
+        });
+
+        if (licensesMap.size > 0) {
+            licensesCache = Array.from(licensesMap.values());
+        }
+
+        if (studentList.length > 0) {
+            const userMap = new Map();
+            usersCache.forEach(u => userMap.set(u.id || u.userId, u));
+            studentList.forEach(s => userMap.set(s.id || s.userId, { ...(userMap.get(s.id || s.userId) || {}), ...s }));
+            usersCache = Array.from(userMap.values());
+        }
+
+        notifyState();
+    } catch (e) {
+        console.error("syncLicensesFromRtdb error:", e);
+    }
 }
 
 export function initRealtimeSync() {
@@ -513,7 +562,18 @@ export function initRealtimeSync() {
                 licensesUnsubscribe = onSnapshot(licCol, (snapshot) => {
                     const list = [];
                     snapshot.forEach(docSnap => {
-                        list.push({ key: docSnap.id, id: docSnap.id, ...docSnap.data() });
+                        const data = docSnap.data();
+                        const existing = licensesCache.find(l => l.key === docSnap.id);
+                        const regUsers = (Array.isArray(data.registeredUsers) && data.registeredUsers.length > 0)
+                            ? data.registeredUsers
+                            : (existing?.registeredUsers || []);
+                        list.push({
+                            key: docSnap.id,
+                            id: docSnap.id,
+                            ...data,
+                            registeredUsers: regUsers,
+                            registeredCount: regUsers.length
+                        });
                     });
                     licensesCache = list;
                     notifyState();
