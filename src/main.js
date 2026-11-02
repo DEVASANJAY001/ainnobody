@@ -489,12 +489,12 @@ function renderLicenses() {
             const shortHwid = l.hardwareId.length > 16 ? l.hardwareId.substring(0, 16) + '...' : l.hardwareId;
             deviceCell = `
                 <div class="device-lock-cell">
-                    <span class="badge badge-device-locked">🔒 Bound</span>
-                    <div class="device-info-tag">
-                        <div style="font-weight: 500; color: #f1f5f9;">${l.machineName || 'Host PC'}</div>
-                        <span class="device-id-mono" title="${l.hardwareId}">${shortHwid}</span>
+                    <span class="badge badge-device-locked" style="flex-shrink: 0;">🔒 Bound</span>
+                    <div class="device-info-tag" style="min-width: 0; flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-main); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${l.machineName || 'Host PC'}</div>
+                        <span class="device-id-mono" title="${l.hardwareId}" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${shortHwid}</span>
                     </div>
-                    <button class="btn btn-secondary btn-sm unlock-hwid-btn" data-key="${l.key}" title="Reset device lock to allow re-activation on another PC" style="color: #fca5a5; border-color: rgba(239, 68, 68, 0.3);">
+                    <button class="btn btn-secondary btn-sm unlock-hwid-btn" data-key="${l.key}" title="Reset device lock to allow re-activation on another PC" style="color: var(--apple-red); border-color: rgba(255, 69, 58, 0.35); flex-shrink: 0; white-space: nowrap;">
                         Unlock HWID
                     </button>
                 </div>
@@ -514,11 +514,11 @@ function renderLicenses() {
             const chips = regUsers.map(id => `<code class="student-id-chip ${isLimit ? 'limit-reached' : ''}">${id}</code>`).join(' ');
             studentUsersCell = `
                 <div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-                        <span style="font-size: 11px; font-weight: 600; color: ${isLimit ? '#ef4444' : '#34d399'};">
-                            ${regCount}/5 Users ${isLimit ? '(Limit Reached)' : ''}
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
+                        <span class="badge ${isLimit ? 'badge-expired' : 'badge-active'}" style="font-size: 10.5px; padding: 2px 7px;">
+                            ${regCount}/5 ${isLimit ? 'Limit' : 'Users'}
                         </span>
-                        <button class="btn btn-secondary btn-sm manage-students-btn" data-key="${l.key}" title="View & Manage 5 student IDs" style="font-size: 10px; padding: 2px 5px;">
+                        <button class="btn btn-secondary btn-sm manage-students-btn" data-key="${l.key}" title="View & Manage 5 student IDs" style="font-size: 11px; padding: 2px 8px; flex-shrink: 0; white-space: nowrap;">
                             Manage
                         </button>
                     </div>
@@ -545,14 +545,14 @@ function renderLicenses() {
             <td>${expiryDisplay}</td>
             <td>${studentUsersCell}</td>
             <td style="text-align: right;">
-                <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                    <button class="btn btn-secondary btn-sm extend-lic-btn" data-key="${l.key}" title="Extend Expiry (+30d, +60d)">
+                <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-shrink: 0; white-space: nowrap;">
+                    <button class="btn btn-secondary btn-sm extend-lic-btn" data-key="${l.key}" title="Extend Expiry (+30d, +60d)" style="flex-shrink: 0; white-space: nowrap;">
                         ⏳ Extend
                     </button>
-                    <button class="btn btn-secondary btn-sm toggle-revoke-btn" data-key="${l.key}" data-revoked="${isRevoked}" title="${isRevoked ? 'Reactivate Key' : 'Revoke Key'}">
+                    <button class="btn btn-secondary btn-sm toggle-revoke-btn" data-key="${l.key}" data-revoked="${isRevoked}" title="${isRevoked ? 'Reactivate Key' : 'Revoke Key'}" style="flex-shrink: 0; white-space: nowrap;">
                         ${isRevoked ? '✅ Enable' : '🚫 Revoke'}
                     </button>
-                    <button class="btn btn-secondary btn-sm delete-lic-btn" data-key="${l.key}" title="Delete Key" style="color: #ef4444;">
+                    <button class="btn btn-secondary btn-sm delete-lic-btn" data-key="${l.key}" title="Delete Key" style="color: var(--apple-red); border-color: rgba(255, 69, 58, 0.35); flex-shrink: 0;">
                         🗑️
                     </button>
                 </div>
@@ -794,12 +794,12 @@ function renderUsers() {
             const shortDev = u.boundDeviceId.length > 14 ? u.boundDeviceId.substring(0, 14) + '...' : u.boundDeviceId;
             deviceCell = `
                 <div class="device-lock-cell">
-                    <span class="badge badge-device-locked">🔒 Bound</span>
-                    <div class="device-info-tag">
-                        <div style="font-weight: 500; color: #f1f5f9;">${u.boundDeviceName || 'Device'}</div>
-                        <span class="device-id-mono" title="${u.boundDeviceId}">${shortDev}</span>
+                    <span class="badge badge-device-locked" style="flex-shrink: 0;">🔒 Bound</span>
+                    <div class="device-info-tag" style="min-width: 0; flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-main); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u.boundDeviceName || 'Device'}</div>
+                        <span class="device-id-mono" title="${u.boundDeviceId}" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${shortDev}</span>
                     </div>
-                    <button class="btn btn-secondary btn-sm unbind-device-btn" data-user="${u.username}" title="Reset single-device lock so user can switch computers" style="color: #fca5a5; border-color: rgba(239, 68, 68, 0.3);">
+                    <button class="btn btn-secondary btn-sm unbind-device-btn" data-user="${u.username}" title="Reset single-device lock so user can switch computers" style="color: var(--apple-red); border-color: rgba(255, 69, 58, 0.35); flex-shrink: 0; white-space: nowrap;">
                         Unbind
                     </button>
                 </div>
@@ -1656,6 +1656,32 @@ subscribeToState((state) => {
     renderLicenses();
     renderUsers();
 });
+
+
+// ── APPLE DUAL THEME CONTROLLER (Light & Dark Mode) ──
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('apple_portal_theme') || 'dark';
+    applyTheme(savedTheme);
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('apple_portal_theme', theme);
+    if (themeToggleBtn) {
+        themeToggleBtn.innerHTML = theme === 'light' ? '🌙' : '☀️';
+        themeToggleBtn.title = theme === 'light' ? 'Switch to Apple Dark Pro' : 'Switch to Apple White Theme';
+        themeToggleBtn.setAttribute('aria-label', theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode');
+    }
+}
+
+themeToggleBtn?.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(current === 'light' ? 'dark' : 'light');
+});
+
+initTheme();
 
 // Initial check for active session
 syncAdminAuthUI(getCurrentAdmin());
