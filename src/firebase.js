@@ -1,4 +1,4 @@
-﻿// Admin Portal - Multi-Tenant Firebase Service Layer
+// Admin Portal - Multi-Tenant Firebase Service Layer
 // Supports isolated Admin accounts (admins/{adminId}), scoped student users (users/{userId}),
 // single-device binding, and dedicated per-admin Gemini API keys.
 
@@ -461,6 +461,7 @@ export async function syncLicensesFromRtdb() {
                         ...item,
                         key: cleanKey,
                         id: cleanKey,
+                        maxUsers: item.maxUsers || existing.maxUsers || 5,
                         registeredUsers: mergedRegUsers,
                         registeredCount: mergedRegUsers.length
                     });
@@ -571,6 +572,7 @@ export function initRealtimeSync() {
                             key: docSnap.id,
                             id: docSnap.id,
                             ...data,
+                            maxUsers: data.maxUsers || existing?.maxUsers || 5,
                             registeredUsers: regUsers,
                             registeredCount: regUsers.length
                         });
@@ -879,13 +881,14 @@ export function generateWindowsLicenseKey() {
     return `${getRandomSeg()}-${getRandomSeg()}-${getRandomSeg()}-${getRandomSeg()}-${getRandomSeg()}`;
 }
 
-export async function createLicenseKeys({ durationDays, notes, count = 1 }) {
+export async function createLicenseKeys({ durationDays, notes, count = 1, maxUsers = 5 }) {
     if (!currentAdmin || !currentAdmin.adminId) {
         throw new Error("Unauthorized: Sign in required before creating product keys.");
     }
 
     const qty = Math.max(1, Math.min(50, parseInt(count) || 1));
     const days = Math.max(1, parseInt(durationDays) || 30);
+    const userLimit = Math.max(1, parseInt(maxUsers, 10) || 5);
     const createdKeys = [];
 
     for (let i = 0; i < qty; i++) {
@@ -906,7 +909,7 @@ export async function createLicenseKeys({ durationDays, notes, count = 1 }) {
             machineName: null,
             isOneTimeUsed: false,
             registeredUsers: [],
-            maxUsers: 5,
+            maxUsers: userLimit,
             notes: notes ? String(notes).trim() : "",
             updatedAt: new Date().toISOString()
         };
@@ -1118,6 +1121,185 @@ export async function clearKeyRegisteredUsers(key) {
     }
 
     return { success: true };
+}
+
+export async function updateKeyMaxUsers(key, newMaxUsers) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanKey = String(key).trim().toUpperCase();
+    const limit = Math.max(1, parseInt(newMaxUsers, 10) || 5);
+    const patch = {
+        maxUsers: limit,
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        await updateDoc(doc(db, "license_keys", cleanKey), patch);
+    } catch(e) { }
+
+    try {
+        await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+    } catch (e) { }
+
+    const idx = licensesCache.findIndex(l => l.key === cleanKey);
+    if (idx >= 0) {
+        licensesCache[idx] = { ...licensesCache[idx], ...patch };
+        notifyState();
+    }
+
+    return { success: true, maxUsers: limit };
+}
+
+export async function removeStudentFromKey(key, studentId) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanKey = String(key).trim().toUpperCase();
+    const cleanId = String(studentId).trim();
+    const lic = licensesCache.find(l => l.key === cleanKey);
+    const currentUsers = (lic && Array.isArray(lic.registeredUsers)) ? lic.registeredUsers : [];
+    const newUsers = currentUsers.filter(u => String(u).trim() !== cleanId);
+
+    const patch = {
+        registeredUsers: newUsers,
+        registeredCount: newUsers.length,
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        await updateDoc(doc(db, "license_keys", cleanKey), patch);
+    } catch(e) { }
+
+    try {
+        await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/${encodeURIComponent(cleanId)}.json`, {
+            method: "DELETE"
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/REG_${encodeURIComponent(cleanId)}.json`, {
+            method: "DELETE"
+        });
+    } catch (e) { }
+
+    const idx = licensesCache.findIndex(l => l.key === cleanKey);
+    if (idx >= 0) {
+        licensesCache[idx] = { ...licensesCache[idx], ...patch };
+    }
+    usersCache = usersCache.filter(u => (u.username !== cleanId && u.id !== cleanId && u.userId !== cleanId));
+
+    notifyState();
+    return { success: true, registeredUsers: newUsers };
+}
+
+export async function addStudentToKey(key, studentId) {
+    if (!currentAdmin || !currentAdmin.adminId) {
+        throw new Error("Unauthorized: Sign in required.");
+    }
+    const cleanKey = String(key).trim().toUpperCase();
+    const cleanId = String(studentId).trim();
+
+    if (!/^\d{8}$/.test(cleanId)) {
+        throw new Error("Student ID must be an 8-digit number (e.g. 24009664).");
+    }
+
+    const lic = licensesCache.find(l => l.key === cleanKey);
+    const maxUsers = (lic && lic.maxUsers > 0) ? lic.maxUsers : 5;
+    const currentUsers = (lic && Array.isArray(lic.registeredUsers)) ? [...lic.registeredUsers] : [];
+
+    if (currentUsers.includes(cleanId)) {
+        throw new Error(`Student ID ${cleanId} is already registered on this key.`);
+    }
+
+    if (currentUsers.length >= maxUsers) {
+        throw new Error(`Cannot add student: Key has reached its maximum user limit (${currentUsers.length}/${maxUsers}). Increase the limit first.`);
+    }
+
+    currentUsers.push(cleanId);
+    const nowIso = new Date().toISOString();
+
+    const patch = {
+        registeredUsers: currentUsers,
+        registeredCount: currentUsers.length,
+        lastRegisteredUser: cleanId,
+        updatedAt: nowIso
+    };
+
+    try {
+        await updateDoc(doc(db, "license_keys", cleanKey), patch);
+    } catch(e) { }
+
+    try {
+        await fetch(`${firebaseConfig.rtdbUrl}/license_keys/${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/KEY_${encodeURIComponent(cleanKey)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch)
+        });
+
+        const studentPayload = {
+            userId: cleanId,
+            licenseKey: cleanKey,
+            adminId: currentAdmin.adminId,
+            registeredAt: nowIso,
+            isActive: true
+        };
+        await fetch(`${firebaseConfig.rtdbUrl}/users/${encodeURIComponent(cleanId)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(studentPayload)
+        });
+        await fetch(`${firebaseConfig.rtdbUrl}/users/REG_${encodeURIComponent(cleanId)}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(studentPayload)
+        });
+    } catch (e) { }
+
+    const idx = licensesCache.findIndex(l => l.key === cleanKey);
+    if (idx >= 0) {
+        licensesCache[idx] = { ...licensesCache[idx], ...patch };
+    }
+
+    const existingUserIdx = usersCache.findIndex(u => u.username === cleanId || u.id === cleanId || u.userId === cleanId);
+    const userObj = {
+        id: cleanId,
+        userId: cleanId,
+        username: cleanId,
+        licenseKey: cleanKey,
+        adminId: currentAdmin.adminId,
+        registeredAt: nowIso,
+        isActive: true
+    };
+    if (existingUserIdx >= 0) {
+        usersCache[existingUserIdx] = { ...usersCache[existingUserIdx], ...userObj };
+    } else {
+        usersCache.push(userObj);
+    }
+
+    notifyState();
+    return { success: true, registeredUsers: currentUsers };
 }
 
 export async function deleteLicenseKey(key) {

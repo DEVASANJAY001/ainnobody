@@ -225,6 +225,24 @@
                 </div>
 
                 <div class="form-group">
+                  <label class="form-label" for="inputKeyMaxUsers">
+                    <span>User Lock Limit <span style="font-size: 11px; color: var(--text-dim);">(Max Students)</span></span>
+                  </label>
+                  <select id="inputKeyMaxUsers" class="form-input" style="cursor: pointer;">
+                    <option value="1">1 Student (Personal Device)</option>
+                    <option value="2">2 Students</option>
+                    <option value="3">3 Students</option>
+                    <option value="5" selected>5 Students (Default Limit)</option>
+                    <option value="10">10 Students (Lab Group)</option>
+                    <option value="custom">Custom Limit...</option>
+                  </select>
+                  <div id="customMaxUsersWrap" style="margin-top: 6px; display: none; align-items: center; gap: 8px;">
+                    <input type="number" id="inputCustomMaxUsers" class="form-input" min="1" max="100" placeholder="e.g. 7" style="max-width: 120px; padding: 6px 10px;">
+                    <span style="font-size: 12px; color: var(--text-dim);">students</span>
+                  </div>
+                </div>
+
+                <div class="form-group">
                   <label class="form-label" for="inputKeyNotes">Batch Label / Cohort Notes</label>
                   <input type="text" id="inputKeyNotes" class="form-input" placeholder="e.g. Saveetha CSE Lab 3, 2026 Batch">
                 </div>
@@ -805,39 +823,65 @@ service cloud.firestore {
         </div>
       </div>
 
-      <!-- ── MODAL: MANAGE 5-USER TRAINING RESTRICTION ── -->
+      <!-- ── MODAL: MANAGE USER RESTRICTION & STUDENT IDS ── -->
       <div id="manageStudentsModal" class="modal-overlay">
-        <div class="modal-card" style="max-width: 520px;">
+        <div class="modal-card" style="max-width: 540px;">
           <div class="modal-header">
-            <h3 class="modal-title">👥 5-User Restriction on Training Website</h3>
+            <h3 class="modal-title">👥 Manage Student IDs & User Lock</h3>
             <button type="button" id="closeManageStudentsModalBtn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
           </div>
           <div class="modal-body">
-            <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
-              Device: <b id="manageModalDeviceName" style="color: #f1f5f9;">DESKTOP-PC</b> 
-              (<code id="manageModalHwid" class="mono" style="color: #38bdf8; font-size: 11px;">HWID-XXXX</code>)
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 6px;">
+              <div>Key: <code id="manageModalKey" class="mono" style="color: #38bdf8; font-weight: 600;">XXXXX-XXXXX</code></div>
+              <div>Device: <b id="manageModalDeviceName" style="color: #f1f5f9;">DESKTOP-PC</b> (<code id="manageModalHwid" class="mono" style="color: #38bdf8; font-size: 11px;">HWID-XXXX</code>)</div>
             </div>
 
+            <!-- Configurable User Limit Bar -->
+            <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div>
+                <div style="font-size: 12.5px; font-weight: 600; color: #38bdf8;">Max User Limit for this Key:</div>
+                <div style="font-size: 11px; color: var(--text-dim);">Maximum unique students allowed to log in</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="number" id="inputModalKeyMaxUsers" min="1" max="100" class="form-input" style="width: 70px; padding: 5px 8px; text-align: center; font-weight: 600; font-size: 13px;">
+                <button type="button" id="btnSaveModalKeyMaxUsers" class="btn btn-secondary btn-sm" style="font-size: 11.5px; padding: 5px 10px; white-space: nowrap;">
+                  💾 Save Limit
+                </button>
+              </div>
+            </div>
+
+            <!-- Registered Students Section -->
             <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 13px; font-weight: 600;">Registered 8-Digit Student User IDs:</span>
+                <span style="font-size: 13px; font-weight: 600;">Authorized Student IDs:</span>
                 <span id="manageModalUserCountBadge" class="badge badge-active">0 / 5 Used</span>
               </div>
               <p style="font-size: 11.5px; color: var(--text-dim); margin-bottom: 10px;">
-                Only these 5 unique user IDs are permitted to log in at <code>https://training2.saveetha.in/login/index.php</code> through this PC's SEB instance:
+                Only these student IDs are permitted to log in at <code>training2.saveetha.in</code> via SEB:
               </p>
-              <div id="manageModalUserList" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; align-items: center;">
-                <!-- Dynamically populated chips -->
+              <div id="manageModalUserList" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; align-items: center; margin-bottom: 12px;">
+                <!-- Dynamically populated chips with individual remove buttons -->
+              </div>
+
+              <!-- Manually Add Single Student ID -->
+              <div style="border-top: 1px dashed var(--border-subtle); padding-top: 10px; display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="inputModalNewStudentId" class="form-input" placeholder="Add 8-digit Student ID (e.g. 24009664)" maxlength="8" style="flex: 1; padding: 6px 10px; font-size: 12px;">
+                <button type="button" id="btnAddModalStudentBtn" class="btn btn-primary btn-sm" style="font-size: 12px; padding: 6px 12px; white-space: nowrap;">
+                  ➕ Add Student
+                </button>
               </div>
             </div>
 
-            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-md); padding: 12px;">
-              <div style="font-size: 12px; font-weight: 600; color: #fca5a5; margin-bottom: 4px;">Admin Reset:</div>
-              <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px;">
-                Clearing these IDs resets the 5-user lock on this computer, allowing up to 5 new student IDs to be registered upon subsequent logins.
-              </p>
-              <button type="button" id="btnClearRegisteredUsersBtn" class="btn btn-secondary btn-sm" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
-                🗑️ Clear All 5 Registered IDs
+            <!-- Reset / Clear All IDs -->
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-md); padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+              <div>
+                <div style="font-size: 12px; font-weight: 600; color: #fca5a5; margin-bottom: 2px;">Reset All IDs:</div>
+                <div style="font-size: 11px; color: var(--text-muted);">
+                  Clears all student registrations on this key and device.
+                </div>
+              </div>
+              <button type="button" id="btnClearRegisteredUsersBtn" class="btn btn-secondary btn-sm" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4); white-space: nowrap;">
+                🗑️ Clear All
               </button>
             </div>
           </div>

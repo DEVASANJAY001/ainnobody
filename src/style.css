@@ -1656,6 +1656,11 @@ code, kbd, pre, .mono {
   background: rgba(255, 69, 58, 0.12);
 }
 
+.btn-remove-single-student:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  color: #fff !important;
+}
+
 /* Empty State */
 .empty-state {
   padding: 56px 24px;

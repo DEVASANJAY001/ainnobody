@@ -23,6 +23,9 @@ import {
     resetLicenseKeyDevice,
     toggleLicenseKeyRevoke,
     clearKeyRegisteredUsers,
+    updateKeyMaxUsers,
+    removeStudentFromKey,
+    addStudentToKey,
     deleteLicenseKey
 } from './firebase.js';
 
@@ -83,6 +86,9 @@ const btnGenerateLicense = document.getElementById('btnGenerateLicense');
 const durationPresetBtns = document.querySelectorAll('.duration-preset-btn');
 const inputCustomDays = document.getElementById('inputCustomDays');
 const inputKeyQuantity = document.getElementById('inputKeyQuantity');
+const inputKeyMaxUsers = document.getElementById('inputKeyMaxUsers');
+const customMaxUsersWrap = document.getElementById('customMaxUsersWrap');
+const inputCustomMaxUsers = document.getElementById('inputCustomMaxUsers');
 const inputKeyNotes = document.getElementById('inputKeyNotes');
 const liveKeyPreview = document.getElementById('liveKeyPreview');
 
@@ -104,12 +110,17 @@ const closeExtendLicenseModalBtn = document.getElementById('closeExtendLicenseMo
 const cancelExtendLicenseModalBtn = document.getElementById('cancelExtendLicenseModalBtn');
 const extendLicQuickBtns = document.querySelectorAll('.extend-lic-quick-btn');
 
-// Manage 5 Students Modal Elements
+// Manage Students & User Lock Modal Elements
 const manageStudentsModal = document.getElementById('manageStudentsModal');
+const manageModalKey = document.getElementById('manageModalKey');
 const manageModalDeviceName = document.getElementById('manageModalDeviceName');
 const manageModalHwid = document.getElementById('manageModalHwid');
+const inputModalKeyMaxUsers = document.getElementById('inputModalKeyMaxUsers');
+const btnSaveModalKeyMaxUsers = document.getElementById('btnSaveModalKeyMaxUsers');
 const manageModalUserCountBadge = document.getElementById('manageModalUserCountBadge');
 const manageModalUserList = document.getElementById('manageModalUserList');
+const inputModalNewStudentId = document.getElementById('inputModalNewStudentId');
+const btnAddModalStudentBtn = document.getElementById('btnAddModalStudentBtn');
 const btnClearRegisteredUsersBtn = document.getElementById('btnClearRegisteredUsersBtn');
 const closeManageStudentsModalBtn = document.getElementById('closeManageStudentsModalBtn');
 const closeManageStudentsFooterBtn = document.getElementById('closeManageStudentsFooterBtn');
@@ -503,22 +514,31 @@ function renderLicenses() {
             deviceCell = '<span class="badge badge-device-unbound">🔓 Unbound (Waiting for PC)</span>';
         }
 
-        // 5-User Training Website Restriction Cell
+        // Training Website User Restriction Cell (Dynamic Limit)
         const regUsers = l.registeredUsers || [];
         const regCount = regUsers.length;
+        const maxUsers = l.maxUsers || 5;
+        const isLimit = regCount >= maxUsers;
         let studentUsersCell = '';
+
         if (regCount === 0) {
-            studentUsersCell = '<span style="font-size: 12px; color: var(--text-dim);">0/5 registered</span>';
+            studentUsersCell = `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    <span style="font-size: 12px; color: var(--text-dim);">0/${maxUsers} registered</span>
+                    <button class="btn btn-secondary btn-sm manage-students-btn" data-key="${l.key}" title="Manage student IDs & user limit" style="font-size: 11px; padding: 2px 8px; flex-shrink: 0; white-space: nowrap;">
+                        Manage
+                    </button>
+                </div>
+            `;
         } else {
-            const isLimit = regCount >= 5;
             const chips = regUsers.map(id => `<code class="student-id-chip ${isLimit ? 'limit-reached' : ''}">${id}</code>`).join(' ');
             studentUsersCell = `
                 <div>
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
                         <span class="badge ${isLimit ? 'badge-expired' : 'badge-active'}" style="font-size: 10.5px; padding: 2px 7px;">
-                            ${regCount}/5 ${isLimit ? 'Limit' : 'Users'}
+                            ${regCount}/${maxUsers} ${isLimit ? 'Limit' : 'Users'}
                         </span>
-                        <button class="btn btn-secondary btn-sm manage-students-btn" data-key="${l.key}" title="View & Manage 5 student IDs" style="font-size: 11px; padding: 2px 8px; flex-shrink: 0; white-space: nowrap;">
+                        <button class="btn btn-secondary btn-sm manage-students-btn" data-key="${l.key}" title="Manage student IDs & user limit" style="font-size: 11px; padding: 2px 8px; flex-shrink: 0; white-space: nowrap;">
                             Manage
                         </button>
                     </div>
@@ -662,28 +682,59 @@ function openManageStudentsModal(key) {
     const lic = (appState.licenses || []).find(l => l.key === key);
     if (!lic) return;
 
+    if (manageModalKey) manageModalKey.innerText = lic.key;
     if (manageModalDeviceName) manageModalDeviceName.innerText = lic.machineName || 'Host PC';
     if (manageModalHwid) manageModalHwid.innerText = lic.hardwareId || 'Unbound';
 
+    const maxUsers = (lic && lic.maxUsers > 0) ? lic.maxUsers : 5;
+    if (inputModalKeyMaxUsers) {
+        inputModalKeyMaxUsers.value = maxUsers;
+    }
+
     const users = lic.registeredUsers || [];
+    const isLimit = users.length >= maxUsers;
+
     if (manageModalUserCountBadge) {
-        manageModalUserCountBadge.innerText = `${users.length} / 5 Slots Used`;
-        manageModalUserCountBadge.className = `badge ${users.length >= 5 ? 'badge-expired' : 'badge-active'}`;
+        manageModalUserCountBadge.innerText = `${users.length} / ${maxUsers} Used`;
+        manageModalUserCountBadge.className = `badge ${isLimit ? 'badge-expired' : 'badge-active'}`;
     }
 
     if (manageModalUserList) {
         if (users.length === 0) {
-            manageModalUserList.innerHTML = '<span style="font-size: 12px; color: var(--text-dim);">No students have logged in on this PC yet.</span>';
+            manageModalUserList.innerHTML = '<span style="font-size: 12px; color: var(--text-dim);">No students authorized or logged in on this PC yet.</span>';
         } else {
             manageModalUserList.innerHTML = users.map(id => `
-                <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px;">
+                <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; padding: 4px 8px 4px 10px; display: inline-flex; align-items: center; gap: 8px;">
                     <span style="font-size: 13px;">🎓</span>
                     <span class="mono" style="font-weight: 600; color: #38bdf8;">${id}</span>
+                    <button type="button" class="btn-remove-single-student" data-key="${lic.key}" data-student-id="${id}" title="Remove student ${id}" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 1px 4px; font-size: 15px; line-height: 1; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;">&times;</button>
                 </div>
             `).join('');
+
+            manageModalUserList.querySelectorAll('.btn-remove-single-student').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const k = btn.dataset.key;
+                    const stId = btn.dataset.studentId;
+                    if (!confirm(`Are you sure you want to remove student ID ${stId} from key ${k}?`)) return;
+
+                    btn.disabled = true;
+                    btn.innerText = '...';
+                    try {
+                        await removeStudentFromKey(k, stId);
+                        showToast(`Student ID ${stId} removed.`);
+                        openManageStudentsModal(k);
+                    } catch(err) {
+                        showToast(err.message, 'error');
+                        btn.disabled = false;
+                        btn.innerText = '×';
+                    }
+                });
+            });
         }
     }
 
+    if (inputModalNewStudentId) inputModalNewStudentId.value = '';
     manageStudentsModal?.classList.add('open');
 }
 
@@ -1464,6 +1515,12 @@ function updateLiveKeyPreview() {
     if (codeEl) codeEl.innerText = sample;
 }
 
+inputKeyMaxUsers?.addEventListener('change', () => {
+    if (customMaxUsersWrap) {
+        customMaxUsersWrap.style.display = inputKeyMaxUsers.value === 'custom' ? 'flex' : 'none';
+    }
+});
+
 // Generate License Key(s) Submit
 licenseGeneratorForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1471,14 +1528,21 @@ licenseGeneratorForm?.addEventListener('submit', async (e) => {
     const qty = parseInt(inputKeyQuantity?.value, 10) || 1;
     const notes = inputKeyNotes?.value || '';
 
+    let maxUsers = 5;
+    if (inputKeyMaxUsers?.value === 'custom') {
+        maxUsers = parseInt(inputCustomMaxUsers?.value, 10) || 5;
+    } else {
+        maxUsers = parseInt(inputKeyMaxUsers?.value, 10) || 5;
+    }
+
     if (btnGenerateLicense) {
         btnGenerateLicense.disabled = true;
         btnGenerateLicense.innerText = 'Generating Keys...';
     }
 
     try {
-        const res = await createLicenseKeys({ durationDays: duration, notes: notes, count: qty });
-        showToast(`Successfully created ${res.keys.length} product ${res.keys.length === 1 ? 'key' : 'keys'}!`);
+        const res = await createLicenseKeys({ durationDays: duration, notes: notes, count: qty, maxUsers: maxUsers });
+        showToast(`Successfully created ${res.keys.length} product ${res.keys.length === 1 ? 'key' : 'keys'} with ${maxUsers}-student limit!`);
 
         if (generatedKeysCount) generatedKeysCount.innerText = res.keys.length;
         if (generatedKeysDuration) generatedKeysDuration.innerText = `${duration} Days`;
@@ -1614,25 +1678,91 @@ extendLicQuickBtns.forEach(btn => {
     });
 });
 
-// Manage 5 Students Modal Handlers
+// Manage Students & User Limit Modal Handlers
 function closeManageStudentsModal() {
     manageStudentsModal?.classList.remove('open');
     appState.targetManageStudentsKey = null;
+    if (inputModalNewStudentId) inputModalNewStudentId.value = '';
 }
 closeManageStudentsModalBtn?.addEventListener('click', closeManageStudentsModal);
 closeManageStudentsFooterBtn?.addEventListener('click', closeManageStudentsModal);
 
+// Save Max User Limit
+btnSaveModalKeyMaxUsers?.addEventListener('click', async () => {
+    const key = appState.targetManageStudentsKey;
+    if (!key) return;
+    const val = parseInt(inputModalKeyMaxUsers?.value, 10);
+    if (!val || val < 1) {
+        showToast('Please enter a valid max user limit (at least 1).', 'error');
+        return;
+    }
+
+    btnSaveModalKeyMaxUsers.disabled = true;
+    btnSaveModalKeyMaxUsers.innerText = 'Saving...';
+    try {
+        await updateKeyMaxUsers(key, val);
+        showToast(`User limit updated to ${val} students.`);
+        openManageStudentsModal(key);
+    } catch(err) {
+        showToast(err.message, 'error');
+    } finally {
+        btnSaveModalKeyMaxUsers.disabled = false;
+        btnSaveModalKeyMaxUsers.innerText = '💾 Save Limit';
+    }
+});
+
+// Add Single Student ID
+async function handleAddModalStudent() {
+    const key = appState.targetManageStudentsKey;
+    if (!key) return;
+    const stId = (inputModalNewStudentId?.value || '').trim();
+    if (!/^\d{8}$/.test(stId)) {
+        showToast('Please enter an 8-digit student ID (e.g. 24009664).', 'error');
+        return;
+    }
+
+    if (btnAddModalStudentBtn) {
+        btnAddModalStudentBtn.disabled = true;
+        btnAddModalStudentBtn.innerText = 'Adding...';
+    }
+
+    try {
+        await addStudentToKey(key, stId);
+        showToast(`Student ${stId} authorized successfully!`);
+        if (inputModalNewStudentId) inputModalNewStudentId.value = '';
+        openManageStudentsModal(key);
+    } catch(err) {
+        showToast(err.message, 'error');
+    } finally {
+        if (btnAddModalStudentBtn) {
+            btnAddModalStudentBtn.disabled = false;
+            btnAddModalStudentBtn.innerText = '➕ Add Student';
+        }
+    }
+}
+
+btnAddModalStudentBtn?.addEventListener('click', handleAddModalStudent);
+inputModalNewStudentId?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddModalStudent();
+    }
+});
+
 btnClearRegisteredUsersBtn?.addEventListener('click', async () => {
     const key = appState.targetManageStudentsKey;
     if (!key) return;
-    if (!confirm(`Are you sure you want to clear all registered student IDs for this machine?\n\nThis will reset the 5-user limit counter to 0/5.`)) {
+    const lic = (appState.licenses || []).find(l => l.key === key);
+    const maxUsers = lic?.maxUsers || 5;
+
+    if (!confirm(`Are you sure you want to clear all registered student IDs for key ${key}?\n\nThis will reset the user count to 0/${maxUsers}.`)) {
         return;
     }
 
     try {
         await clearKeyRegisteredUsers(key);
         showToast('Registered student IDs cleared successfully.');
-        closeManageStudentsModal();
+        openManageStudentsModal(key);
     } catch(err) {
         showToast(err.message, 'error');
     }
