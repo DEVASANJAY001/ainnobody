@@ -1154,7 +1154,7 @@ code, kbd, pre, .mono {
   transform: scale(0.85);
 }
 
-/* Actions Menu */
+/* Actions Menu & Trigger Button */
 .action-buttons {
   display: flex;
   align-items: center;
@@ -1162,6 +1162,155 @@ code, kbd, pre, .mono {
   justify-content: flex-end;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.lic-actions-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--btn-sec-bg);
+  border: 1px solid var(--btn-sec-border);
+  color: var(--btn-sec-color);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform var(--dur-press) var(--ease-out),
+              background-color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.lic-actions-trigger:hover {
+  background: var(--btn-sec-hover);
+  border-color: var(--border-strong);
+  color: var(--text-main);
+}
+
+.lic-actions-trigger:active {
+  transform: scale(0.95);
+}
+
+.lic-actions-trigger.active {
+  background: var(--nav-tab-active-bg) !important;
+  border-color: var(--apple-blue) !important;
+  color: var(--apple-blue) !important;
+  box-shadow: 0 0 0 2px var(--apple-blue-glow);
+}
+
+.lic-actions-trigger .chevron-icon {
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lic-actions-trigger.active .chevron-icon {
+  transform: rotate(180deg);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   APPLE FLOATING POPUP ACTIONS MENU (Context Dropdown for Table Rows)
+   ══════════════════════════════════════════════════════════════════ */
+.apple-actions-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 196px;
+  background: var(--bg-card-solid);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), 0 2px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0;
+  transform: scale(0.94) translateY(-4px);
+  pointer-events: none;
+  transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.14s ease-out;
+}
+
+.apple-actions-menu.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+[data-theme="light"] .apple-actions-menu {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              transform var(--dur-press) var(--ease-out);
+}
+
+.action-menu-item:hover {
+  background: var(--apple-blue);
+  color: #ffffff;
+}
+
+.action-menu-item:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.action-menu-item.danger {
+  color: var(--apple-red);
+}
+
+.action-menu-item.danger:hover {
+  background: var(--apple-red);
+  color: #ffffff;
+}
+
+.action-menu-icon {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.action-menu-label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.action-menu-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 6px;
 }
 
 /* ══════════════════════════════════════════════════════════════════

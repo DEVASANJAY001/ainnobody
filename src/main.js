@@ -328,6 +328,7 @@ function toLocalDatetimeInput(date) {
 
 // ── TAB SWITCHING ──
 function switchTab(tabId) {
+    closeLicenseActionMenu();
     appState.currentTab = tabId;
 
     [tabLicensesBtn, tabUsersBtn, tabSettingsBtn, tabFirebaseBtn, tabActivityBtn].forEach(btn => btn?.classList.remove('active'));
@@ -565,17 +566,12 @@ function renderLicenses() {
             <td>${expiryDisplay}</td>
             <td>${studentUsersCell}</td>
             <td style="text-align: right;">
-                <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-shrink: 0; white-space: nowrap;">
-                    <button class="btn btn-secondary btn-sm extend-lic-btn" data-key="${l.key}" title="Extend Expiry (+30d, +60d)" style="flex-shrink: 0; white-space: nowrap;">
-                        ⏳ Extend
-                    </button>
-                    <button class="btn btn-secondary btn-sm toggle-revoke-btn" data-key="${l.key}" data-revoked="${isRevoked}" title="${isRevoked ? 'Reactivate Key' : 'Revoke Key'}" style="flex-shrink: 0; white-space: nowrap;">
-                        ${isRevoked ? '✅ Enable' : '🚫 Revoke'}
-                    </button>
-                    <button class="btn btn-secondary btn-sm delete-lic-btn" data-key="${l.key}" title="Delete Key" style="color: var(--apple-red); border-color: rgba(255, 69, 58, 0.35); flex-shrink: 0;">
-                        🗑️
-                    </button>
-                </div>
+                <button type="button" class="btn btn-secondary btn-sm lic-actions-trigger" data-key="${l.key}" aria-haspopup="true" aria-expanded="false" title="Actions menu for key ${l.key}">
+                    <span>Actions</span>
+                    <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
             </td>
         `;
 
@@ -614,39 +610,12 @@ function renderLicenses() {
         });
     });
 
-    licensesTableBody.querySelectorAll('.extend-lic-btn').forEach(btn => {
+    licensesTableBody.querySelectorAll('.lic-actions-trigger').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const key = btn.getAttribute('data-key');
-            openExtendLicenseModal(key);
-        });
-    });
-
-    licensesTableBody.querySelectorAll('.toggle-revoke-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const key = btn.getAttribute('data-key');
-            const isRev = btn.getAttribute('data-revoked') === 'true';
-            try {
-                await toggleLicenseKeyRevoke(key, !isRev);
-                showToast(`Key ${key} ${!isRev ? 'revoked' : 're-activated'}.`);
-            } catch(err) {
-                showToast(err.message, 'error');
-            }
-        });
-    });
-
-    licensesTableBody.querySelectorAll('.delete-lic-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const key = btn.getAttribute('data-key');
-            if (!key) return;
-            if (!confirm(`Permanently delete license key:\n${key}?`)) return;
-            try {
-                await deleteLicenseKey(key);
-                showToast(`Key ${key} deleted.`);
-            } catch(err) {
-                showToast(err.message, 'error');
+            if (key) {
+                openLicenseActionMenu(btn, key);
             }
         });
     });
@@ -659,6 +628,169 @@ function renderLicenses() {
         });
     });
 }
+
+// ── FLOATING APPLE ACTIONS POPUP MENU CONTROLLER ──
+const licenseActionMenu = document.getElementById('licenseActionMenu');
+const actionMenuRevokeIcon = document.getElementById('actionMenuRevokeIcon');
+const actionMenuRevokeLabel = document.getElementById('actionMenuRevokeLabel');
+const actionMenuUnlockItem = document.getElementById('actionMenuUnlockItem');
+
+let currentActionMenuKey = null;
+let currentActionTriggerBtn = null;
+
+function closeLicenseActionMenu() {
+    if (!licenseActionMenu) return;
+    licenseActionMenu.classList.remove('open');
+    if (currentActionTriggerBtn) {
+        currentActionTriggerBtn.classList.remove('active');
+        currentActionTriggerBtn.setAttribute('aria-expanded', 'false');
+        currentActionTriggerBtn = null;
+    }
+    currentActionMenuKey = null;
+    setTimeout(() => {
+        if (!licenseActionMenu.classList.contains('open')) {
+            licenseActionMenu.style.display = 'none';
+        }
+    }, 150);
+}
+
+function openLicenseActionMenu(triggerBtn, key) {
+    if (!licenseActionMenu) return;
+
+    if (currentActionMenuKey === key && licenseActionMenu.classList.contains('open')) {
+        closeLicenseActionMenu();
+        return;
+    }
+
+    if (currentActionTriggerBtn) {
+        currentActionTriggerBtn.classList.remove('active');
+        currentActionTriggerBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    const lic = (appState.licenses || []).find(l => l.key === key);
+    if (!lic) return;
+
+    currentActionMenuKey = key;
+    currentActionTriggerBtn = triggerBtn;
+
+    // Update labels and state
+    const isRevoked = lic.status === 'REVOKED';
+    if (actionMenuRevokeIcon) actionMenuRevokeIcon.innerText = isRevoked ? '✅' : '🚫';
+    if (actionMenuRevokeLabel) actionMenuRevokeLabel.innerText = isRevoked ? 'Enable / Reactivate' : 'Revoke Key';
+
+    const isBound = !!(lic.hardwareId && lic.hardwareId.trim() !== '');
+    if (actionMenuUnlockItem) {
+        actionMenuUnlockItem.style.display = isBound ? 'flex' : 'none';
+    }
+
+    // Display element to calculate layout
+    licenseActionMenu.style.display = 'flex';
+    licenseActionMenu.style.visibility = 'hidden';
+
+    const rect = triggerBtn.getBoundingClientRect();
+    const menuWidth = licenseActionMenu.offsetWidth || 196;
+    const menuHeight = licenseActionMenu.offsetHeight || 210;
+
+    // Positioning logic (smart flipping)
+    const spaceBelow = window.innerHeight - rect.bottom;
+    let top = rect.bottom + 6;
+    let transformOrigin = 'top right';
+
+    if (spaceBelow < menuHeight && rect.top > menuHeight) {
+        top = rect.top - menuHeight - 6;
+        transformOrigin = 'bottom right';
+    }
+
+    let left = rect.right - menuWidth;
+    if (left < 10) left = 10;
+    if (left + menuWidth > window.innerWidth - 10) {
+        left = window.innerWidth - menuWidth - 10;
+    }
+
+    licenseActionMenu.style.top = `${top}px`;
+    licenseActionMenu.style.left = `${left}px`;
+    licenseActionMenu.style.transformOrigin = transformOrigin;
+    licenseActionMenu.style.visibility = 'visible';
+
+    requestAnimationFrame(() => {
+        licenseActionMenu.classList.add('open');
+        licenseActionMenu.setAttribute('aria-hidden', 'false');
+        triggerBtn.classList.add('active');
+        triggerBtn.setAttribute('aria-expanded', 'true');
+    });
+}
+
+// Menu item click dispatcher
+licenseActionMenu?.querySelectorAll('.action-menu-item').forEach(item => {
+    item.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = item.getAttribute('data-action');
+        const key = currentActionMenuKey;
+        closeLicenseActionMenu();
+
+        if (!key) return;
+        const lic = (appState.licenses || []).find(l => l.key === key);
+
+        if (action === 'extend') {
+            openExtendLicenseModal(key);
+        } else if (action === 'revoke') {
+            const isRevoked = lic?.status === 'REVOKED';
+            try {
+                await toggleLicenseKeyRevoke(key, !isRevoked);
+                showToast(`Key ${key} ${!isRevoked ? 'revoked' : 're-activated'}.`);
+            } catch(err) {
+                showToast(err.message, 'error');
+            }
+        } else if (action === 'students') {
+            openManageStudentsModal(key);
+        } else if (action === 'unlock-hwid') {
+            if (!confirm(`Are you sure you want to reset Hardware Lock for key:\n${key}?\n\nThis will allow the student to activate SafeExamBrowser on a new computer.`)) {
+                return;
+            }
+            try {
+                await resetLicenseKeyDevice(key);
+                showToast(`Hardware Lock reset for ${key}. Ready for new PC.`);
+            } catch(err) {
+                showToast(err.message, 'error');
+            }
+        } else if (action === 'copy') {
+            navigator.clipboard.writeText(key).then(() => {
+                showToast(`Product Key copied: ${key}`);
+            }).catch(() => {
+                showToast('Failed to copy key', 'error');
+            });
+        } else if (action === 'delete') {
+            if (!confirm(`Permanently delete license key:\n${key}?`)) return;
+            try {
+                await deleteLicenseKey(key);
+                showToast(`Key ${key} deleted.`);
+            } catch(err) {
+                showToast(err.message, 'error');
+            }
+        }
+    });
+});
+
+// Dismiss popup on outside click, window scroll or resize
+document.addEventListener('click', (e) => {
+    if (licenseActionMenu && licenseActionMenu.classList.contains('open')) {
+        if (!licenseActionMenu.contains(e.target) && (!currentActionTriggerBtn || !currentActionTriggerBtn.contains(e.target))) {
+            closeLicenseActionMenu();
+        }
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (licenseActionMenu && licenseActionMenu.classList.contains('open')) {
+        closeLicenseActionMenu();
+    }
+});
+
+window.addEventListener('scroll', () => {
+    if (licenseActionMenu && licenseActionMenu.classList.contains('open')) {
+        closeLicenseActionMenu();
+    }
+}, true);
 
 function openExtendLicenseModal(key) {
     appState.targetExtendLicenseKey = key;
@@ -1819,6 +1951,7 @@ syncAdminAuthUI(getCurrentAdmin());
 
 // ── MODAL ACCESSIBILITY & BACKDROP / ESCAPE DISMISSAL (Emil Kowalski Pattern) ──
 function closeOpenModals() {
+    closeLicenseActionMenu();
     [userModal, extendModal, shareModal, generatedKeysModal, extendLicenseModal, manageStudentsModal].forEach(m => {
         if (m && m.classList.contains('open')) {
             m.classList.remove('open');

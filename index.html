@@ -294,10 +294,10 @@
                   <th style="min-width: 250px;">Windows Product Key</th>
                   <th style="min-width: 95px;">Duration</th>
                   <th style="min-width: 145px;">Status</th>
-                  <th style="min-width: 270px;">Hardware Binding (HWID)</th>
+                  <th style="min-width: 260px;">Hardware Binding (HWID)</th>
                   <th style="min-width: 185px;">Expiry Date</th>
-                  <th style="min-width: 195px;">5-User Lock</th>
-                  <th style="min-width: 215px; text-align: right;">Actions</th>
+                  <th style="min-width: 195px;">Student Access (Lock)</th>
+                  <th style="min-width: 110px; text-align: right;">Actions</th>
                 </tr>
               </thead>
               <tbody id="licensesTableBody">
@@ -891,6 +891,35 @@ service cloud.firestore {
         </div>
       </div>
     </div> <!-- /#dashboardContainer -->
+
+    <!-- ── FLOATING APPLE ACTIONS POPUP MENU (FOR TABLE ROWS) ── -->
+    <div id="licenseActionMenu" class="apple-actions-menu" role="menu" aria-hidden="true" style="display: none;">
+      <button type="button" class="action-menu-item" data-action="extend">
+        <span class="action-menu-icon">⏳</span>
+        <span class="action-menu-label">Extend Duration</span>
+      </button>
+      <button type="button" class="action-menu-item" data-action="revoke">
+        <span class="action-menu-icon" id="actionMenuRevokeIcon">🚫</span>
+        <span class="action-menu-label" id="actionMenuRevokeLabel">Revoke Key</span>
+      </button>
+      <button type="button" class="action-menu-item" data-action="students">
+        <span class="action-menu-icon">👥</span>
+        <span class="action-menu-label">Manage Students</span>
+      </button>
+      <button type="button" class="action-menu-item" data-action="unlock-hwid" id="actionMenuUnlockItem">
+        <span class="action-menu-icon">🔓</span>
+        <span class="action-menu-label">Unlock Hardware ID</span>
+      </button>
+      <button type="button" class="action-menu-item" data-action="copy">
+        <span class="action-menu-icon">📋</span>
+        <span class="action-menu-label">Copy Product Key</span>
+      </button>
+      <div class="action-menu-divider"></div>
+      <button type="button" class="action-menu-item danger" data-action="delete">
+        <span class="action-menu-icon">🗑️</span>
+        <span class="action-menu-label">Delete Key</span>
+      </button>
+    </div>
 
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
